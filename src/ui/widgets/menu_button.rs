@@ -1,5 +1,5 @@
 //! The menu button (3x Osc `Chord`): the caption `<label>:   ` (label, colon, three spaces) in `text` 10 pt, then a
-//! `controlFill` box with the current item in the channel colour, 10 pt, centred with a 0.2 U inset (plain text: the
+//! `controlFill` box (corners rounded 0.2 U, iOS style) with the current item in the channel colour, 10 pt, centred with a 0.2 U inset (plain text: the
 //! even inset leaves it centred on the box). The caption takes its own width from the rect's left, the box the rest.
 //! A tap on the box opens the spinner's popup; the caption takes no input.
 
@@ -67,7 +67,7 @@ pub fn menu_button(
                 .min;
             painter.galley(pos, galley, colors.text.to_color32());
         }
-        painter.rect_filled(boxed, 0.0, colors.control_fill.to_color32());
+        painter.rect_filled(boxed, m.u(0.2).min(boxed.height() / 2.0), colors.control_fill.to_color32());
         painter.text(boxed.center(), Align2::CENTER_CENTER, text, font, c.channel);
         response
     })

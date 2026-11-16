@@ -391,7 +391,7 @@ impl SaveDialog {
             crate::ui::widgets::shrink(&painter, m, l.title, Align2::LEFT_CENTER, title, pt, text);
         }
 
-        painter.rect_filled(l.field, 0.0, bg);
+        painter.rect_filled(l.field, m.u(0.2).min(l.field.height() / 2.0), bg);
         let visuals = ui.visuals_mut();
         visuals.text_cursor.stroke.color = text;
         visuals.selection.bg_fill = c.accent.to_color32().gamma_multiply(0.5);

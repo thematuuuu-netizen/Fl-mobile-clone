@@ -24,13 +24,13 @@ pub fn text_label(
         .text(align.pos_in_rect(&rect), align, text, font, color);
 }
 
-/// The placeholder for a module-drawn display: a `controlFill` rect with a one-pixel `background` outline. A later
+/// The placeholder for a module-drawn display: a `controlFill` rect (corners rounded 0.15 U, iOS style) with a one-pixel `background` outline. A later
 /// milestone draws the meter, curve or graph on top of it.
 pub fn display_area(ui: &Ui, cx: &UiCtx, rect: Rect) {
     let colors = &cx.theme.colors;
     ui.painter().rect(
         rect,
-        0.0,
+        cx.m.u(0.15).min(rect.width().min(rect.height()) / 2.0),
         colors.control_fill.to_color32(),
         Stroke::new(1.0 / cx.m.ppp(), colors.background.to_color32()),
         StrokeKind::Inside,

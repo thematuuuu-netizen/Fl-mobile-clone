@@ -1,5 +1,5 @@
 //! The dialog base: no animation, the screen dimmed (`background` at α 0.6) and the floating panel, both from the first
-//! frame. The panel is `menuFill` with corners of min(0.4 U, half its short side), inside a 2 px border of
+//! frame. The panel is `menuFill` with corners of min(0.5 U, half its short side), inside a 2 px border of
 //! 0.55·`menuFill` + 0.45·`text`. Every dialog on the base paints its look through here: Song options, the Save dialog
 //! (and its preset, sample-name and `Save as MIDI` forms), the tempo dialog, MIDI import, Fine tune, Channel settings
 //! and the scale-guess result; message boxes draw the same panel ([`panel`]).
@@ -19,11 +19,11 @@ use crate::ui::widgets::Button;
 /// The widest a floating dialog gets, in U.
 const MAX_W: f32 = 20.0;
 /// The panel's corner radius in U, at most half its short side.
-const CORNER: f32 = 0.4;
+const CORNER: f32 = 0.5;
 /// The border, in device px.
 const BORDER_PX: f32 = 2.0;
 /// A dialog button's corner radius, in U.
-const BUTTON_CORNER: f32 = 0.25;
+const BUTTON_CORNER: f32 = 0.3;
 
 /// A floating dialog's width on `screen`: min(20 U, W − 4 px), centred.
 pub(crate) fn floating_x(screen: Rect, m: &Metrics) -> Rangef {
@@ -46,7 +46,7 @@ pub(crate) fn panel(painter: &Painter, c: &ThemeColors, m: &Metrics, rect: Rect)
     painter.rect_stroke(rect, corner, stroke, StrokeKind::Outside);
 }
 
-/// A dialog's button: a `text` fill with a `moduleFill` 12 pt label, corners 0.25 U.
+/// A dialog's button: a `text` fill with a `moduleFill` 12 pt label, corners 0.3 U.
 pub(crate) fn button<'a>(
     id: Id,
     rect: Rect,

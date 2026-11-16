@@ -87,7 +87,7 @@ const CARD_GAP: f32 = 0.35;
 /// A card's header row; a minimized card is only that.
 const CARD_HEADER: f32 = 1.5;
 /// A card's corners.
-const CARD_CORNER: f32 = 0.4;
+const CARD_CORNER: f32 = 0.5;
 /// The side rack's collapse tab: its size, its inset from the rack's left edge and its outline ring in device px, just
 /// outside the pill.
 const COLLAPSE: Vec2 = vec2(1.0, 1.6);

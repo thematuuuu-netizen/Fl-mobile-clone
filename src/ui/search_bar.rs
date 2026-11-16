@@ -361,7 +361,7 @@ impl SearchBar {
         let (c, m) = (&cx.theme.colors, cx.m);
         let text = c.text.to_color32();
         let bar = Self::rect(browser, m);
-        ui.painter().rect_filled(bar, 0.0, c.menu_fill.to_color32());
+        ui.painter().rect_filled(bar, m.u(0.4).min(bar.height() / 2.0), c.menu_fill.to_color32());
         let (rect, clear) = bar.split_left_right_at_x(bar.right() - m.u(CLEAR_W));
         let ctx = ui.ctx().clone();
         // A target of the browser's focus, with no `open` of its own (Enter does nothing).

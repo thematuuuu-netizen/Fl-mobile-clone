@@ -113,15 +113,28 @@ fn slider(
         ),
         None => (colors.control_fill.to_color32(), c.channel),
     };
+    // iOS style: the track and its fill are pills, rounded by half their short side.
+    let pill = if horizontal {
+        track.height()
+    } else {
+        track.width()
+    } / 2.0;
     if primary_down_on(ui, &response) || hovered(ui, &response) {
         painter.rect_filled(
             track.expand(HALO_PX / m.ppp()),
-            0.0,
+            pill,
             c.channel.gamma_multiply(HALO),
         );
     }
-    painter.rect_filled(track, 0.0, body_ink);
-    painter.rect_filled(fill(track, horizontal, v, c.bipolar), 0.0, ink);
+    painter.rect_filled(track, pill, body_ink);
+    // The fill can be shorter than the pill radius at its ends: never round it past its own half length.
+    let filled = fill(track, horizontal, v, c.bipolar);
+    let fill_pill = if horizontal {
+        pill.min(filled.width() / 2.0)
+    } else {
+        pill.min(filled.height() / 2.0)
+    };
+    painter.rect_filled(filled, fill_pill, ink);
     let (center, r) = thumb(track, horizontal, v, c.bipolar, t);
     painter.circle_filled(center, r, body_ink);
     painter.circle_filled(center, r - 2.0 * t, ink);
