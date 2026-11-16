@@ -67,7 +67,11 @@ pub fn menu_button(
                 .min;
             painter.galley(pos, galley, colors.text.to_color32());
         }
-        painter.rect_filled(boxed, m.u(0.2).min(boxed.height() / 2.0), colors.control_fill.to_color32());
+        painter.rect_filled(
+            boxed,
+            m.u(0.2).min(boxed.height() / 2.0),
+            colors.control_fill.to_color32(),
+        );
         painter.text(boxed.center(), Align2::CENTER_CENTER, text, font, c.channel);
         response
     })

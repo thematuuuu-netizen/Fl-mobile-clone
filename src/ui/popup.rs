@@ -228,7 +228,11 @@ fn show_as<T: Copy>(
         ui.allocate_exact_size(rect.size(), Sense::hover());
         let painter = ui.painter();
         if let Some(shape) = sweep.fill(rect, m).filter(|_| !on_box) {
-            painter.rect_filled(shape, m.u(0.35).min(shape.width() / 2.0).min(shape.height() / 2.0), fill);
+            painter.rect_filled(
+                shape,
+                m.u(0.35).min(shape.width() / 2.0).min(shape.height() / 2.0),
+                fill,
+            );
         }
         // Until the sweep is done (or while a message box opens) the items take input but are not drawn.
         let mut painter = painter.clone();
