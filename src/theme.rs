@@ -216,7 +216,7 @@ impl RawTheme {
             self.colors.unwrap_or_default(),
             self.options.unwrap_or_default(),
         );
-        let text = c.text.unwrap_or(Rgba::hex(0xFFFFFF));
+        let text = c.text.unwrap_or(Rgba::hex(0xF2F2F7));
         Theme {
             id: self.id,
             name: self.name,
@@ -229,7 +229,7 @@ impl RawTheme {
                 // A fixed default, not the theme's background: no built-in theme sets it.
                 text_on_accent: c.text_on_accent.unwrap_or(Rgba::hex(0xFFFFFF)),
                 accent: c.accent.unwrap_or(text),
-                white_key: c.white_key.unwrap_or(Rgba::hex(0xFFFFFF)),
+                white_key: c.white_key.unwrap_or(Rgba::hex(0xE5E5EA)),
                 black_key: c.black_key.unwrap_or(Rgba::hex(0x1C1C1E)),
                 white_key_disabled: c.white_key_disabled.unwrap_or(Rgba::hex(0x8E8E93)),
                 black_key_disabled: c.black_key_disabled.unwrap_or(Rgba::hex(0x48484A)),
@@ -294,8 +294,8 @@ pub fn builtin_themes() -> Vec<Theme> {
         row(
             0,
             "iOS Dark",
-            [0x000000, 0x1C1C1E, 0x2C2C2E, 0x3A3A3C, 0xFFFFFF, ACCENT],
-            Some([0xFFFFFF, 0x1C1C1E, 0x8E8E93, 0x48484A]),
+            [0x000000, 0x1C1C1E, 0x2C2C2E, 0x3A3A3C, 0xF2F2F7, ACCENT],
+            Some([0xE5E5EA, 0x1C1C1E, 0x8E8E93, 0x48484A]),
             None,
         ),
         row(
@@ -453,9 +453,9 @@ mod tests {
     fn ios_dark_resolves_with_defaults() {
         let c = theme_by_id(0).colors;
         assert_eq!(c.background.to_hex(), "000000");
-        assert_eq!(c.text.to_hex(), "FFFFFF");
+        assert_eq!(c.text.to_hex(), "F2F2F7");
         assert_eq!(c.accent.to_hex(), "007AFF");
-        assert_eq!(c.white_key.to_hex(), "FFFFFF");
+        assert_eq!(c.white_key.to_hex(), "E5E5EA");
         assert_eq!(c.black_key_disabled.to_hex(), "48484A");
     }
 
@@ -505,7 +505,7 @@ mod tests {
         .into();
         assert_eq!(
             hex.join(" "),
-            "000000 1C1C1E 2C2C2E 3A3A3C FFFFFF FFFFFF FFFFFF 1C1C1E 8E8E93 48484A"
+            "000000 1C1C1E 2C2C2E 3A3A3C F2F2F7 F2F2F7 E5E5EA 1C1C1E 8E8E93 48484A"
         );
         let o = t.options;
         assert_eq!(

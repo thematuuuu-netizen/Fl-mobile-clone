@@ -621,7 +621,7 @@ fn menu_parts(bench: &Bench) -> (Run, Run, Rect) {
     let fills = fills_in(&bench.shapes, CHORD);
     assert_eq!(fills.len(), 1, "{fills:?}");
     let (fill, rect, radius) = fills[0];
-    assert_eq!((fill, radius), (colors().control_fill.to_color32(), 0.0));
+    assert_eq!((fill, radius), (colors().control_fill.to_color32(), 6.0));
     (texts[0].clone(), texts[1].clone(), rect)
 }
 

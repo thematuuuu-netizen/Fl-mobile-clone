@@ -52,3 +52,27 @@ This writes `target/honeydew-android-<version>-arm-debug.apk` (one APK for
 64-bit and 32-bit ARM, Android 8+). The debug app is called “Honeydew Debug” and
 installs alongside the release app. Add `--base` for the APK without sounds,
 which downloads them on first launch.
+
+## Test fixes (CI green)
+
+The first CI runs failed on 13 unit tests whose expectations were tied to the old
+palette or pre-rounding geometry. Fixed without changing the redesign's look:
+
+- `theme.rs`: iOS Dark `text` is now `F2F2F7` and `whiteKey` is `E5E5EA` (also the
+  resolve defaults). Pure `FFFFFF` collided with hard-coded white elements — the
+  rack-tab icon read as a selection handle, and a pressed piano key was
+  indistinguishable from an unpressed one. Both are Apple system greys, visually
+  unchanged.
+- `ui/widgets/tests/kit_c.rs`: the menu-button box now expects the 0.2 U corner
+  radius (6 pt at test scale) instead of square corners.
+- `panels/fx/equalizer.rs`, `panels/fx/note_echo.rs`: hard-coded colour snapshots
+  updated to the values the new palette produces.
+
+Local result: `cargo test -p honeydew --lib` — 4524 passed, 0 failed.
+
+## Android test build
+
+`.github/workflows/android-test-build.yml` builds the base (no-sounds) debug APK
+on GitHub's runners and uploads it as the `honeydew-android-base-debug` artifact:
+Actions → "Android test build (base APK)" → Run workflow → download the artifact
+→ install the APK (Android 8+, debug-signed as "Honeydew Debug").
