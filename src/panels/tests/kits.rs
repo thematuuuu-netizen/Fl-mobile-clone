@@ -61,7 +61,12 @@ fn a_right_label_toggle_is_the_kit_c_pill_with_its_label_on_the_right() {
         "{label:?}"
     );
     let pill = rig.shapes_in(rect).into_iter().find_map(|s| match s {
-        Shape::Rect(r) if r.fill == colors().control_fill.to_color32() => Some(r.rect),
+        // The switch's pill: `controlFill` while off, the channel colour while on.
+        Shape::Rect(r)
+            if r.fill == colors().control_fill.to_color32() || r.fill == Color32::RED =>
+        {
+            Some(r.rect)
+        }
         _ => None,
     });
     let pill = pill.expect("pill drawn");

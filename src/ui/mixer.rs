@@ -907,9 +907,9 @@ mod tests {
         rig.frame(vec![]);
         let (mute, solo) = (rig.part(1, MUTE), rig.part(1, SOLO));
         let theme = theme_by_id(0);
-        let menu = theme.colors.menu_fill.to_color32();
-        // Inverted: Mute 0.5 draws the muted side, dot down.
-        assert_eq!(rig.dots(mute), [(mute.center() + vec2(0.0, 8.0), menu)]);
+        let off_dot = theme.colors.text.to_color32().gamma_multiply(0.55);
+        // Inverted: Mute 0.5 draws the muted side, dot down in dimmed `text`.
+        assert_eq!(rig.dots(mute), [(mute.center() + vec2(0.0, 8.0), off_dot)]);
         assert_eq!(rig.texts(solo)[0].1, theme.colors.text.to_color32());
         rig.click(mute.center());
         rig.click(solo.center());
@@ -1416,20 +1416,20 @@ mod tests {
         let mut rig = Rig::new(1);
         let theme = theme_by_id(0);
         let mute = rig.part(1, MUTE);
-        let channel = channel_color(rig.song.channels[1].hue, &theme).to_color32();
-        let menu = theme.colors.menu_fill.to_color32();
-        // Mute = 0: the dot is 4 t (t = 2) above the middle, in the channel colour.
+        let on_dot = theme.colors.text_on_accent.to_color32();
+        let off_dot = theme.colors.text.to_color32().gamma_multiply(0.55);
+        // Mute = 0: the dot is 4 t (t = 2) above the middle, in `textOnAccent` on the channel-coloured pill.
         assert_eq!(rig.song.channels[1].params.0[2], 0.0);
-        assert_eq!(rig.dots(mute), [(mute.center() - vec2(0.0, 8.0), channel)]);
-        // A click mutes: Mute = 1, and the dot drops and goes menuFill.
+        assert_eq!(rig.dots(mute), [(mute.center() - vec2(0.0, 8.0), on_dot)]);
+        // A click mutes: Mute = 1, and the dot drops and goes dimmed `text`.
         rig.click(mute.center());
         assert_eq!(rig.changes, [(1, 2, 1.0)]);
         assert_eq!(rig.song.channels[1].params.0[2], 1.0);
-        assert_eq!(rig.dots(mute), [(mute.center() + vec2(0.0, 8.0), menu)]);
+        assert_eq!(rig.dots(mute), [(mute.center() + vec2(0.0, 8.0), off_dot)]);
         // And back.
         rig.click(mute.center());
         assert_eq!(rig.changes, [(1, 2, 1.0), (1, 2, 0.0)]);
-        assert_eq!(rig.dots(mute), [(mute.center() - vec2(0.0, 8.0), channel)]);
+        assert_eq!(rig.dots(mute), [(mute.center() - vec2(0.0, 8.0), on_dot)]);
     }
 
     #[test]

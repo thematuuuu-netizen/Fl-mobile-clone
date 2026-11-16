@@ -2074,9 +2074,9 @@ fn bar_response(ui: &mut egui::Ui, id: Id, slot: Rect, disabled: bool) -> egui::
 }
 
 /// A transport button's look over `slot`, with no fill at rest: its icon in `text` (or `look.ink`), over its 6 pt
-/// caption, inset 0.2 U each side; lit, a `text` disc of radius 0.375 b behind a `controlFill` icon; with `ring`, a 2
-/// px `text` ring of radius 0.4 b round it; a hovering mouse (on `response`) brightens it ×1.25. Disabled, the icon is
-/// at α 0.25.
+/// caption, inset 0.2 U each side; lit, a `text` disc of radius 0.375 b behind a `controlFill` icon; with `ring`, a
+/// Liquid Glass disc of radius 0.4 b round the icon (a 2 px `text` rim when lit, whose disc fills its inside); a
+/// hovering mouse (on `response`) brightens it ×1.25. Disabled, the icon is at α 0.25.
 fn paint_bar_button(
     ui: &egui::Ui,
     cx: &UiCtx,
@@ -2102,8 +2102,22 @@ fn paint_bar_button(
         ink = c.control_fill.to_color32();
     }
     if look.ring {
-        let ring = egui::Stroke::new(2.0 / m.ppp(), text);
-        (ui.painter()).circle_stroke(content.center(), PLAY_RING * slot.width(), ring);
+        let center = content.center();
+        if look.lit {
+            // The lit disc fills the ring's inside; only the bright rim stays.
+            let ring = egui::Stroke::new(2.0 / m.ppp(), text);
+            (ui.painter()).circle_stroke(center, PLAY_RING * slot.width(), ring);
+        } else {
+            // A Liquid Glass disc: translucent fill and a light-catching border, the icon on top. A press
+            // lifts it a little (a spring, `anim::press_lift`): it swells under the finger, then settles.
+            let lift = crate::ui::anim::press_lift(
+                ui.ctx(),
+                response.id,
+                response.is_pointer_button_down_on(),
+            );
+            let r = PLAY_RING * slot.width() * (1.0 + 0.04 * lift);
+            crate::ui::glass::paint_glass_disc(ui.painter(), center, r, c);
+        }
     }
     if look.disabled {
         ink = ink.gamma_multiply(DISABLED_ALPHA);

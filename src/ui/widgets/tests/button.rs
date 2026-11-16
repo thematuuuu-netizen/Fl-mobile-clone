@@ -142,7 +142,15 @@ fn a_pressed_button_draws_every_colour_brighter() {
         icon: Some(IconId::Play),
         ..b
     };
-    let fills = |rig: &Rig| circles(&rig.shapes).iter().map(|c| c.0).collect::<Vec<_>>();
+    // The button's own discs (halo, fill) are the ones centred on the button; the Play icon's rounded
+    // corner discs are not.
+    let fills = |rig: &Rig| {
+        circles(&rig.shapes)
+            .into_iter()
+            .filter(|c| c.1 == RECT.center())
+            .map(|c| c.0)
+            .collect::<Vec<_>>()
+    };
     let text = |rig: &Rig| texts(&rig.shapes).iter().find(|t| t.0 == "Mono").unwrap().1;
     let icon = |rig: &Rig, ink: Color32| !painted_in(&rig.shapes, ink).is_empty();
     rig.frame(vec![]);

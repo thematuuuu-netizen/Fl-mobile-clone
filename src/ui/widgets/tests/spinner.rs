@@ -132,8 +132,8 @@ fn tapping_the_value_opens_the_popup_and_a_pick_sets_that_item() {
 }
 
 #[test]
-fn the_popup_marks_the_current_item_with_the_inverted_bar() {
-    let background = theme_by_id(0).colors.background.to_color32();
+fn the_popup_marks_the_current_item_with_the_accent_bar() {
+    let accent = theme_by_id(0).colors.accent.to_color32();
     for (value, current) in [(0.5, 2), (0.0, 0), (1.0, 4)] {
         let mut rig = Rig::new(Kind::Spinner, value);
         let menu = rig.open_popup(VALUE);
@@ -141,9 +141,7 @@ fn the_popup_marks_the_current_item_with_the_inverted_bar() {
             .shapes
             .iter()
             .filter_map(|c| match &c.shape {
-                egui::Shape::Rect(r) if r.fill == background && r.rect.height() == ROW => {
-                    Some(r.rect)
-                }
+                egui::Shape::Rect(r) if r.fill == accent && r.rect.height() == ROW => Some(r.rect),
                 _ => None,
             })
             .collect();

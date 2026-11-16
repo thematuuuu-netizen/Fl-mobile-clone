@@ -97,8 +97,12 @@ pub fn spring(ctx: &Context, id: Id, target: f32) -> f32 {
 /// How far a control's press has lifted it: 0 at rest, 1 pressed, springed by [`spring`] so it can pass 1 a
 /// little on the way in and out. `active` while the pointer is down on the control or it is being dragged.
 /// Callers keep the effect small (a few percent of size, a little brightness): the lift says "alive", it does
-/// not perform.
+/// not perform. Unlike an opening, a lift is 0 whenever the animations are off — a test that holds a control
+/// down still sees its resting shapes.
 pub fn press_lift(ctx: &Context, id: Id, active: bool) -> f32 {
+    if !enabled(ctx) {
+        return 0.0;
+    }
     spring(ctx, id, if active { 1.0 } else { 0.0 })
 }
 
@@ -254,7 +258,7 @@ mod tests {
         });
         enable(&ctx);
         // Rest at 0 for a few frames, then press to 1: the lift swells past 1 and settles on it.
-        let mut run = |target: f32| {
+        let run = |target: f32| {
             let mut x = 0.0;
             let _ = ctx.run(Default::default(), |ctx| x = spring(ctx, id, target));
             x

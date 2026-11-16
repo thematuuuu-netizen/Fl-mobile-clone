@@ -1,5 +1,6 @@
-//! The popup menu, iOS style: a grid of text items in `text` colour on a rounded-corner sheet
-//! (corner radius 0.35 U, no border or shadow), with `background` ink on the sheet's fill.
+//! The popup menu, iOS style: a grid of text items on a dark Liquid Glass sheet (corner radius 0.35 U):
+//! a near-opaque ground of `background` under the theme's glass fill, border and top highlight, with `text`
+//! labels, a glass wash over the hovered item, and the current item on an `accent` bar.
 
 use std::borrow::Cow;
 
@@ -21,8 +22,6 @@ pub(crate) const PAD_X: f32 = 0.5;
 /// The `dot` flag: a filled circle at the item's right edge, with a gap between it and the text.
 const DOT_R: f32 = 0.1;
 const DOT_GAP: f32 = 0.25;
-/// RGB factor of the hovered or pressed item's band: slightly darker.
-const BAND_SHADE: f32 = 0.85;
 /// The opening sweep's bar width (device px).
 const BAR_PX: f32 = 2.0;
 /// A message box's hovered or pressed item: a `text` band at this alpha (as the side browser's rows).
@@ -42,7 +41,7 @@ pub struct PopupItem<T> {
     pub dot: bool,
     /// Selecting the item does not close the popup.
     pub keep_open: bool,
-    /// The value the menu stands for: drawn as a `background` bar with a `text` label.
+    /// The value the menu stands for: drawn as an `accent` bar with a `textOnAccent` label.
     pub current: bool,
 }
 
@@ -191,13 +190,14 @@ fn show_as<T: Copy>(
     let m = cx.m;
     let (rect, cells) = geometry(ctx, items, center, bounds, m);
     let c = &cx.theme.colors;
-    // A message box's items are light on its dark box, which takes the place of the popup's fill.
+    // A message box's items are light on its dark box, which takes the place of the popup's fill. A popup's
+    // own items are `text` on dark glass, its current item `textOnAccent` on the accent bar.
     let (fill, ink) = match on_box {
-        false => (c.text.to_color32(), c.background.to_color32()),
+        false => (c.text_on_accent.to_color32(), c.text.to_color32()),
         true => (c.background.to_color32(), c.text.to_color32()),
     };
     let band = match on_box {
-        false => darken(fill, BAND_SHADE),
+        false => c.glass_highlight().to_color32().gamma_multiply(0.55),
         true => ink.gamma_multiply(BOX_BAND_ALPHA),
     };
     let mut result = PopupResult {
@@ -228,11 +228,15 @@ fn show_as<T: Copy>(
         ui.allocate_exact_size(rect.size(), Sense::hover());
         let painter = ui.painter();
         if let Some(shape) = sweep.fill(rect, m).filter(|_| !on_box) {
+            let radius = m.u(0.35).min(shape.width() / 2.0).min(shape.height() / 2.0);
+            // Dark glass: a near-opaque ground of `background` first (the items stay legible over any
+            // content), then the glass fill, border and top highlight over it.
             painter.rect_filled(
                 shape,
-                m.u(0.35).min(shape.width() / 2.0).min(shape.height() / 2.0),
-                fill,
+                radius,
+                c.background.to_color32().gamma_multiply(0.94),
             );
+            crate::ui::glass::paint_glass(painter, shape, radius, c);
         }
         // Until the sweep is done (or while a message box opens) the items take input but are not drawn.
         let mut painter = painter.clone();
@@ -255,9 +259,10 @@ fn show_as<T: Copy>(
                     result.close |= !item.keep_open;
                 }
             }
-            // The current item inverts: a `background` bar under a `text` label. Only `disabled` dims: the item is
-            // drawn at 30 % alpha as a whole, so over the `text` fill an ink label lands at 30 % and a current item's
-            // bar at 30 %, with its `text` label unchanged on top. A header is drawn in the full ink.
+            // The current item stands out: an `accent` bar under a `textOnAccent` label (a message box's item
+            // keeps its ink bar and `background` label). Only `disabled` dims: the item is drawn at 30 % alpha
+            // as a whole, so a disabled label lands at 30 % and a current item's bar at 30 %, with its label
+            // unchanged on top. A header is drawn in the full ink.
             let dim = |c: Color32| {
                 if item.disabled {
                     c.gamma_multiply(DISABLED_ALPHA)
@@ -267,7 +272,13 @@ fn show_as<T: Copy>(
             };
             let color = if item.current { fill } else { dim(ink) };
             if item.current {
-                painter.rect_filled(cell, 0.0, dim(ink));
+                // A popup's current item sits on the accent; a message box's keeps its ink bar.
+                let bar = if on_box {
+                    dim(ink)
+                } else {
+                    dim(c.accent.to_color32())
+                };
+                painter.rect_filled(cell, 0.0, bar);
             }
             painter.text(
                 pos2(cell.left() + m.u(PAD_X), cell.center().y),
@@ -392,11 +403,6 @@ fn font<T>(item: &PopupItem<T>, m: &Metrics) -> egui::FontId {
     } else {
         FontSize::Pt10
     })
-}
-
-fn darken(color: Color32, factor: f32) -> Color32 {
-    let ch = |v: u8| (f32::from(v) * factor).round() as u8;
-    Color32::from_rgb(ch(color.r()), ch(color.g()), ch(color.b()))
 }
 
 /// The popup's screen rect and the rect of each item's cell (in `items` order).
@@ -770,7 +776,7 @@ mod tests {
 
     #[test]
     fn only_disabled_items_are_dimmed_headers_are_not() {
-        let ink = theme_by_id(0).colors.background.to_color32();
+        let ink = theme_by_id(0).colors.text.to_color32();
         let mut rig = Rig::new(vec![
             PopupItem::header(0, 0, "Header:"),
             item(0, 1, "Plain"),
@@ -826,7 +832,12 @@ mod tests {
     fn the_popup_appears_at_full_strength_without_a_fade() {
         // `fade_in(false)`: from its first visible frame the popup is opaque (an egui fade starts near 0 and lowers
         // every shape's opacity).
-        let fill = theme_by_id(0).colors.text.to_color32();
+        let colors = theme_by_id(0).colors;
+        let sheet_fills = [
+            colors.background.to_color32().gamma_multiply(0.94),
+            colors.glass_fill().to_color32(),
+            Color32::TRANSPARENT,
+        ];
         let mut rig = Rig {
             ctx: Context::default(),
             items: menu(),
@@ -847,7 +858,8 @@ mod tests {
                     // The screen's dim.
                     egui::Shape::Rect(r) if r.rect == BOUNDS => {}
                     egui::Shape::Rect(r) => {
-                        assert_eq!(r.fill, fill);
+                        // The glass sheet's own rects: its ground, its glass fill, its border (no fill).
+                        assert!(sheet_fills.contains(&r.fill), "{:?}", r.fill);
                         seen += 1;
                     }
                     _ => {}
@@ -1026,9 +1038,13 @@ mod tests {
     }
 
     #[test]
-    fn the_current_item_is_a_background_bar_with_a_text_label() {
+    fn the_current_item_is_an_accent_bar_with_a_light_label() {
         let colors = theme_by_id(0).colors;
-        let (text, bg) = (colors.text.to_color32(), colors.background.to_color32());
+        let (text, on_accent, accent) = (
+            colors.text.to_color32(),
+            colors.text_on_accent.to_color32(),
+            colors.accent.to_color32(),
+        );
         let mut rig = Rig::new(vec![
             item(0, 0, "Plain"),
             PopupItem {
@@ -1051,17 +1067,16 @@ mod tests {
                 })
                 .collect()
         };
-        assert_eq!(bars(bg), [rig.cell_rect(0, 1)]);
+        assert_eq!(bars(accent), [rig.cell_rect(0, 1)]);
         // A disabled item is drawn at 30 % alpha, its bar included.
-        assert_eq!(bars(bg.gamma_multiply(0.3)), [rig.cell_rect(0, 2)]);
+        assert_eq!(bars(accent.gamma_multiply(0.3)), [rig.cell_rect(0, 2)]);
 
         let colors = rig.label_colors();
         let color = |label: &str| colors.iter().find(|(l, _)| l == label).unwrap().1;
-        assert_eq!(color("Plain"), bg);
-        assert_eq!(color("Now"), text);
-        // Disabled and current: the item is drawn at 30 % as a whole, so the dimmed bar keeps a plain `text` label,
-        // the colour the composited label would land on (it stays readable).
-        assert_eq!(color("Now off"), text);
+        assert_eq!(color("Plain"), text);
+        assert_eq!(color("Now"), on_accent);
+        // Disabled and current: the bar dims but the label keeps its full `textOnAccent` (it stays readable).
+        assert_eq!(color("Now off"), on_accent);
     }
 
     #[test]
@@ -1295,10 +1310,15 @@ mod sweep_tests {
     }
 
     fn fill() -> Color32 {
-        theme_by_id(0).colors.text.to_color32()
+        // The sheet's ground: the first of its glass layers, painted on the sweep's shape each phase.
+        theme_by_id(0)
+            .colors
+            .background
+            .to_color32()
+            .gamma_multiply(0.94)
     }
 
-    /// The `text`-filled rects painted (the popup's fill, bar or band).
+    /// The ground-filled rects painted (the popup's sheet, bar or band).
     fn fills(shapes: &[ClippedShape]) -> Vec<Rect> {
         (shapes.iter())
             .filter_map(|c| match &c.shape {

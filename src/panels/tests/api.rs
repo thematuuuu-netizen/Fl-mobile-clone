@@ -723,7 +723,17 @@ fn a_slider_off_its_lit_predicate_is_all_module_fill_and_still_takes_a_drag() {
         rig.frame(vec![]);
         for (id, p) in [(1, 6), (2, 1)] {
             assert_eq!(rig.bars(id), look, "#{id} flag {flag}");
-            assert_eq!(rig.thumb(id), look, "#{id} flag {flag}");
+            // A lit slider's thumb is the glass lens: shadow, near-white outer disc, channel lens at 0.85.
+            let thumb_look: Vec<egui::Color32> = if flag == 1 {
+                vec![
+                    egui::Color32::from_black_alpha(90),
+                    colors.text.to_color32(),
+                    egui::Color32::RED.gamma_multiply(0.85),
+                ]
+            } else {
+                look.to_vec()
+            };
+            assert_eq!(rig.thumb(id), thumb_look, "#{id} flag {flag}");
             assert_eq!(rig.drag(id, vec2(U, -U)), [p], "#{id} flag {flag}");
         }
     }
@@ -736,7 +746,7 @@ fn the_arpeggiator_rotation_is_flat_while_its_arp_has_no_rhythm_and_every_write_
     // v = (k + n − 1)/(2(n − 1)), k = round((2v − 1)(n − 1)).
     let mut rig = Rig::new(51, panel_for(51).unwrap().clone(), super::card(10.0).1);
     let colors = theme_by_id(0).colors;
-    let [control, module] = [colors.control_fill, colors.module_fill].map(|c| c.to_color32());
+    let module = colors.module_fill.to_color32();
     let [r1, r7] = [1, 7].map(|k| menu_value(k, 22));
     for (tab, id, p, rhythm, other) in [(1, 19, 15, 14, 25), (2, 31, 26, 25, 14)] {
         rig.state.tab = tab;
@@ -750,7 +760,15 @@ fn the_arpeggiator_rotation_is_flat_while_its_arp_has_no_rhythm_and_every_write_
         // R7 has 6 steps: 0.5 + 0.9 U of the 4 U range is 0.725, k = round(2.25) = 2, v = 7/10.
         rig.module.params[rhythm] = r7;
         rig.frame(vec![]);
-        assert_eq!(rig.thumb(id), [control, egui::Color32::RED], "#{id} R7");
+        assert_eq!(
+            rig.thumb(id),
+            [
+                egui::Color32::from_black_alpha(90),
+                colors.text.to_color32(),
+                egui::Color32::RED.gamma_multiply(0.85)
+            ],
+            "#{id} R7"
+        );
         assert_eq!(rig.drag(id, vec2(0.9 * U, 0.0)), [p], "#{id} R7");
         assert_eq!(rig.module.params[p], 0.7, "#{id} R7");
     }

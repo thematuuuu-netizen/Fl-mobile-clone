@@ -959,7 +959,7 @@ mod tests {
         let l = rig.layout();
         rig.click(l.scale.center() + vec2(0.0, 0.375 * metrics().u(1.0)));
         // The headers are painted dimmed: the popup's ink at 30 %.
-        let ink = crate::theme::theme_by_id(0).colors.background.to_color32();
+        let ink = crate::theme::theme_by_id(0).colors.text.to_color32();
         let colors = Offscreen::texts(&rig.shapes);
         let color = |label: &str| colors.iter().rev().find(|(t, _)| t == label).unwrap().1;
         assert_eq!(color("Other"), ink.gamma_multiply(0.3));

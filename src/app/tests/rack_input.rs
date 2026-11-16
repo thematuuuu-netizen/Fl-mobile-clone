@@ -258,13 +258,10 @@ fn an_input_pick_is_kept_for_the_channel_opens_its_device_and_feeds_the_monitor_
     // The app lists the devices after that frame; the popup's first frame sizes it.
     a.rig.frame(vec![]);
     a.rig.frame(vec![]);
-    let (text, bg) = (
-        a.rig.app.theme.colors.text,
-        a.rig.app.theme.colors.background,
-    );
+    let text = a.rig.app.theme.colors.text;
     assert_eq!(
         a.rig.color_of("Inputs 1 + 2"),
-        Some(bg.to_color32()),
+        Some(text.to_color32()),
         "nothing marked yet"
     );
     assert!(a.rig.painted("USB") && a.rig.painted("Mic"));
@@ -306,8 +303,12 @@ fn an_input_pick_is_kept_for_the_channel_opens_its_device_and_feeds_the_monitor_
     a.rig.click_id(rack_id(1, "input"));
     a.rig.frame(vec![]);
     a.rig.frame(vec![]);
-    assert_eq!(a.rig.color_of("Inputs 1 + 2"), Some(text.to_color32()));
-    assert_eq!(a.rig.color_of("Input 2"), Some(bg.to_color32()));
+    // The marked item's label is `textOnAccent` on its accent bar; the others keep the popup's ink.
+    assert_eq!(
+        a.rig.color_of("Inputs 1 + 2"),
+        Some(a.rig.app.theme.colors.text_on_accent.to_color32())
+    );
+    assert_eq!(a.rig.color_of("Input 2"), Some(text.to_color32()));
     // The rack slides out of the transport's way.
     a.rig.app.nav.overlays.clear();
     a.rig.slide_rack();

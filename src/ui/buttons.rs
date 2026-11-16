@@ -208,6 +208,8 @@ pub fn floating_button(
     let fill = c.module_fill.to_color32();
     let fill = if hover { hover_lit(fill) } else { fill };
     painter.rect_filled(shape, r, fill);
+    // Liquid Glass over the ground: the translucent glass fill, its light border and the top highlight.
+    crate::ui::glass::paint_glass(painter, shape, r, c);
     response
 }
 

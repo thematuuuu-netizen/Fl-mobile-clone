@@ -171,7 +171,7 @@ fn the_ctrl_menu_enables_add_automation_track_with_a_recent_control_and_the_link
     let mut rig = effects_rig();
     let dim = crate::theme::theme_by_id(0)
         .colors
-        .background
+        .text
         .to_color32()
         .gamma_multiply(0.3);
     let enabled = |rig: &mut Rig| -> Vec<&'static str> {

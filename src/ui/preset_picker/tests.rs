@@ -1284,7 +1284,7 @@ impl Rig {
                 (
                     rect.top(),
                     t,
-                    color == theme_by_id(0).colors.background.to_color32(),
+                    color == theme_by_id(0).colors.text.to_color32(),
                 )
             })
             .collect();

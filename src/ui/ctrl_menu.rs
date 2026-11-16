@@ -408,13 +408,17 @@ mod tests {
             }
         }
 
-        /// The popup's rect, from the painted fill; `None` when nothing is painted.
+        /// The popup's rect, from the painted sheet ground; `None` when nothing is painted.
         fn popup_rect(&mut self) -> Option<Rect> {
             let (menu, items) = (&mut self.menu, &self.items);
             let shapes = self.screen.frame(vec![], &mut |ui, cx| {
                 menu.show(ui.ctx(), BUTTON, items, cx);
             });
-            let fill = crate::theme::theme_by_id(0).colors.text.to_color32();
+            let fill = crate::theme::theme_by_id(0)
+                .colors
+                .background
+                .to_color32()
+                .gamma_multiply(0.94);
             shapes.iter().find_map(|s| match &s.shape {
                 eframe::egui::Shape::Rect(r) if r.fill == fill => Some(r.rect),
                 _ => None,

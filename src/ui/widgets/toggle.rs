@@ -117,13 +117,30 @@ pub fn pill_toggle(
     let t = m.t();
     let on = toggle_on(v) != pill.inverted;
     let (pill, dot) = switch(center, on, pill.flat, t);
-    painter.rect_filled(pill, 5.0 * t, colors.control_fill.to_color32());
-    let dot_color = if on {
+    // An iOS switch: the track takes the channel colour when on and rests dark when off; the thumb is
+    // light in both states (bright on the colour, dimmed at rest off). A press lifts the thumb a little
+    // (a spring, `anim::press_lift`): it swells under the finger and settles back.
+    let lift = crate::ui::anim::press_lift(ui.ctx(), c.id, response.is_pointer_button_down_on());
+    let track = if on {
         c.channel
     } else {
-        colors.menu_fill.to_color32()
+        colors.control_fill.to_color32()
     };
-    painter.circle_filled(dot, 2.0 * t, dot_color);
+    painter.rect_filled(pill, 5.0 * t, track);
+    let dot_color = if on {
+        // `textOnAccent` on the channel colour — unless the channel colour is itself near-white (the
+        // settings' toggles, whose channel is `text`), where the dot takes `background` to stay visible.
+        let [r, g, b, _] = c.channel.to_srgba_unmultiplied();
+        let lum = (0.2126 * f32::from(r) + 0.7152 * f32::from(g) + 0.0722 * f32::from(b)) / 255.0;
+        if lum > 0.8 {
+            colors.background.to_color32()
+        } else {
+            colors.text_on_accent.to_color32()
+        }
+    } else {
+        colors.text.to_color32().gamma_multiply(0.55)
+    };
+    painter.circle_filled(dot, 2.0 * t * (1.0 + 0.08 * lift), dot_color);
     response
 }
 

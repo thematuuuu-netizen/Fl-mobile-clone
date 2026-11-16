@@ -440,16 +440,37 @@ fn slider_shapes_follow_the_disabled_and_bipolar_flags() {
             );
             let growth = if bipolar { 0.5 } else { 0.75 };
             let r = (4.5 + 1.485 * growth) * t;
-            assert_eq!(circles.len(), 2);
-            assert_eq!(
-                (circles[0].0, circles[1].0),
-                (control_fill, ink),
-                "{disabled}"
-            );
-            assert!(
-                near(circles[0].1, r) && near(circles[1].1, r - 2.0 * t),
-                "{circles:?}"
-            );
+            if disabled {
+                assert_eq!(circles.len(), 2);
+                assert_eq!(
+                    (circles[0].0, circles[1].0),
+                    (control_fill, ink),
+                    "{disabled}"
+                );
+                assert!(
+                    near(circles[0].1, r) && near(circles[1].1, r - 2.0 * t),
+                    "{circles:?}"
+                );
+            } else {
+                // The glass thumb: a soft shadow, a near-white outer disc, and the channel colour as a
+                // lens at 0.85 inside it.
+                assert_eq!(circles.len(), 3);
+                assert_eq!(
+                    (circles[0].0, circles[1].0, circles[2].0),
+                    (
+                        Color32::from_black_alpha(90),
+                        colors.text.to_color32(),
+                        ink.gamma_multiply(0.85)
+                    ),
+                    "{disabled}"
+                );
+                assert!(
+                    near(circles[0].1, r)
+                        && near(circles[1].1, r)
+                        && near(circles[2].1, r - 2.0 * t),
+                    "{circles:?}"
+                );
+            }
         }
     }
 }

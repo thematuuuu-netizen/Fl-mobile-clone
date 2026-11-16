@@ -1,7 +1,7 @@
 //! Vertical and horizontal sliders.
 //! The horizontal one is the vertical one turned on its side: same strips, the track runs left to right.
 
-use eframe::egui::{Pos2, Rect, Response, Ui, vec2};
+use eframe::egui::{Color32, Pos2, Rect, Response, Ui, vec2};
 
 use super::{Control, Law, drag_control, growth, hovered, primary_down_on};
 use crate::ui::UiCtx;
@@ -119,7 +119,8 @@ fn slider(
     } else {
         track.width()
     } / 2.0;
-    if primary_down_on(ui, &response) || hovered(ui, &response) {
+    let down = primary_down_on(ui, &response);
+    if down || hovered(ui, &response) {
         painter.rect_filled(
             track.expand(HALO_PX / m.ppp()),
             pill,
@@ -136,8 +137,23 @@ fn slider(
     };
     painter.rect_filled(filled, fill_pill, ink);
     let (center, r) = thumb(track, horizontal, v, c.bipolar, t);
-    painter.circle_filled(center, r, body_ink);
-    painter.circle_filled(center, r - 2.0 * t, ink);
+    if c.flat.is_none() && !c.disabled {
+        // The iOS glass thumb: a soft shadow, a near-white glass disc, and the channel colour as a lens
+        // inside it — the lens takes the colour of the fill it sits on. While the thumb is held it swells a
+        // little (a spring, `anim::press_lift`): alive under the finger, quiet at rest.
+        let lift = crate::ui::anim::press_lift(ui.ctx(), c.id, down);
+        let r = r * (1.0 + 0.05 * lift);
+        painter.circle_filled(
+            center + vec2(0.0, 0.5 * t),
+            r,
+            Color32::from_rgba_unmultiplied(0, 0, 0, 90),
+        );
+        painter.circle_filled(center, r, colors.text.to_color32());
+        painter.circle_filled(center, r - 2.0 * t, ink.gamma_multiply(0.85));
+    } else {
+        painter.circle_filled(center, r, body_ink);
+        painter.circle_filled(center, r - 2.0 * t, ink);
+    }
     response
 }
 

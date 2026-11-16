@@ -6327,7 +6327,7 @@ mod tests {
         rig.frame(vec![]);
         let dim = crate::theme::theme_by_id(0)
             .colors
-            .background
+            .text
             .to_color32()
             .gamma_multiply(0.3);
         for item in [

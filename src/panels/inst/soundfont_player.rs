@@ -561,7 +561,12 @@ mod tests {
                         _ => None,
                     })
                     .collect();
-                let ink = if enabled { Color32::RED } else { menu };
+                // An enabled slider's last disc is the glass thumb's lens: the channel at 0.85.
+                let ink = if enabled {
+                    Color32::RED.gamma_multiply(0.85)
+                } else {
+                    menu
+                };
                 assert_eq!(inks.last(), Some(&ink), "{what}");
                 // A tap changes nothing either way. Each gesture starts a second after the last: no double tap.
                 let at = r.center();

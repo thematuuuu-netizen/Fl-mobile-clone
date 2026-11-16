@@ -175,9 +175,10 @@ fn elided(shapes: &[egui::epaint::ClippedShape]) -> Vec<String> {
 
 /// The pill (its rect and corner radius) and the dot (centre, radius, fill) of the last frame.
 fn pill_and_dot(bench: &Bench, area: Rect) -> ((Rect, f32), (Pos2, f32, Color32)) {
+    // The pill's fill: the channel colour while on (an iOS switch), `controlFill` while off.
     let pill = fills_in(&bench.shapes, area.expand(20.0))
         .into_iter()
-        .find(|(fill, ..)| *fill == colors().control_fill.to_color32())
+        .find(|(fill, ..)| *fill == colors().control_fill.to_color32() || *fill == Color32::RED)
         .map(|(_, r, radius)| (r, radius))
         .expect("pill");
     let dot = circles(&bench.shapes)
@@ -204,9 +205,12 @@ fn a_right_label_toggle_puts_the_pill_0_75_u_in_and_the_label_from_1_7_u() {
         Rect::from_center_size(centre, vec2(10.0 * T, 18.0 * T))
     );
     assert_eq!(radius, 5.0 * T);
-    // On: the dot 4 t above the centre, radius 2 t, in the channel colour.
+    // On: the dot 4 t above the centre, radius 2 t, in `textOnAccent` on the channel-coloured pill.
     assert!(pt_near(dot, centre - vec2(0.0, 4.0 * T)), "{dot:?}");
-    assert_eq!((dot_r, dot_fill), (2.0 * T, Color32::RED));
+    assert_eq!(
+        (dot_r, dot_fill),
+        (2.0 * T, colors().text_on_accent.to_color32())
+    );
     // The label: 10 pt (20 at U = 32), channel, starting at x + 1.7 U, vertically centred, in full: `Pulse Mode`
     // (about 3.1 U) runs past the rect's right edge. No On / Off text.
     let texts = text_runs(&bench.shapes);
@@ -301,7 +305,10 @@ fn pill_geometry_holds_at_two_pixels_per_point() {
         .shapes
         .iter()
         .filter_map(|c| match &c.shape {
-            egui::Shape::Rect(r) if r.fill == control_fill => Some((r.rect, r.corner_radius.nw)),
+            // On takes the channel colour, off `controlFill`.
+            egui::Shape::Rect(r) if r.fill == control_fill || r.fill == Color32::RED => {
+                Some((r.rect, r.corner_radius.nw))
+            }
             _ => None,
         })
         .collect();
@@ -314,13 +321,17 @@ fn pill_geometry_holds_at_two_pixels_per_point() {
             (Rect::from_center_size(bare.center(), size), 10),
         ]
     );
-    // The dots: on 4 t up in the channel colour, off 4 t down in menuFill, radius 2 t (4 px).
+    // The dots: on 4 t up in `textOnAccent`, off 4 t down in dimmed `text`, radius 2 t (4 px).
     assert_eq!(
         circles(&output.shapes),
         [
-            (Color32::RED, right_centre - vec2(0.0, 4.0 * t), 2.0 * t),
             (
-                theme.colors.menu_fill.to_color32(),
+                theme.colors.text_on_accent.to_color32(),
+                right_centre - vec2(0.0, 4.0 * t),
+                2.0 * t
+            ),
+            (
+                theme.colors.text.to_color32().gamma_multiply(0.55),
                 bare.center() + vec2(0.0, 4.0 * t),
                 2.0 * t
             ),
@@ -345,9 +356,9 @@ fn a_toggle_without_a_label_centres_the_pill_in_its_rect_in_either_style() {
         let bench = pill_bench(RECT, "", style, &value);
         let ((pill, _), (dot, _, fill)) = pill_and_dot(&bench, RECT);
         assert_eq!(pill.center(), RECT.center(), "{label_right}");
-        // Off: 4 t below the centre, menuFill.
+        // Off: 4 t below the centre, dimmed `text`.
         assert!(pt_near(dot, RECT.center() + vec2(0.0, 4.0 * T)));
-        assert_eq!(fill, colors().menu_fill.to_color32());
+        assert_eq!(fill, colors().text.to_color32().gamma_multiply(0.55));
         assert!(text_runs(&bench.shapes).is_empty());
     }
 }
@@ -378,23 +389,23 @@ fn an_inverted_toggle_shows_on_for_a_value_below_half_and_still_flips_on_click()
         ..Pill::default()
     };
     let mut bench = pill_bench(RECT, "", style, &value);
-    // Not muted (0): dot up, channel.
+    // Not muted (0): dot up, `textOnAccent`.
     let (_, (dot, _, fill)) = pill_and_dot(&bench, RECT);
     assert!(pt_near(dot, RECT.center() - vec2(0.0, 4.0 * T)));
-    assert_eq!(fill, Color32::RED);
-    // A click flips the value as for any toggle: muted (1), dot down, menuFill.
+    assert_eq!(fill, colors().text_on_accent.to_color32());
+    // A click flips the value as for any toggle: muted (1), dot down, dimmed `text`.
     bench.click(RECT.center());
     assert_eq!(value.get(), 1.0);
     assert!(bench.changed);
     bench.frame(vec![]);
     let (_, (dot, _, fill)) = pill_and_dot(&bench, RECT);
     assert!(pt_near(dot, RECT.center() + vec2(0.0, 4.0 * T)));
-    assert_eq!(fill, colors().menu_fill.to_color32());
+    assert_eq!(fill, colors().text.to_color32().gamma_multiply(0.55));
     // NaN reads as the default (0): shown on, and left as it is.
     value.set(f32::NAN);
     bench.frame(vec![]);
     let (_, (_, _, fill)) = pill_and_dot(&bench, RECT);
-    assert_eq!(fill, Color32::RED);
+    assert_eq!(fill, colors().text_on_accent.to_color32());
     assert!(value.get().is_nan());
 }
 
@@ -864,11 +875,11 @@ fn a_pill_toggle_is_on_for_any_value_but_0_and_a_tap_writes_1_only_from_0() {
             value.set(v);
             bench.frame(vec![]);
             let (_, (dot, _, fill)) = pill_and_dot(&bench, RECT);
-            // The inverted flag swaps the sides: the dot is up (channel) while off.
+            // The inverted flag swaps the sides: the dot is up (`textOnAccent`) while off.
             let (dy, ink) = if on != inverted {
-                (-4.0 * T, Color32::RED)
+                (-4.0 * T, colors().text_on_accent.to_color32())
             } else {
-                (4.0 * T, colors().menu_fill.to_color32())
+                (4.0 * T, colors().text.to_color32().gamma_multiply(0.55))
             };
             let at = format!("{v}, inverted {inverted}");
             assert!(pt_near(dot, RECT.center() + vec2(0.0, dy)), "{at}");

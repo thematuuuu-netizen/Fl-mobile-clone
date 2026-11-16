@@ -491,8 +491,8 @@ fn mute_is_the_inverted_pill_and_a_tap_toggles_param_2() {
             .map(|c| (c.0.y - mute.center().y, c.2))
             .unwrap()
     };
-    // Mute 0, audible: the dot up (−4t) in the channel colour.
-    assert_eq!(dot(&rig), (-4.0 * T, rig.ink(1)));
+    // Mute 0, audible: the dot up (−4t) in `textOnAccent` on the channel-coloured pill.
+    assert_eq!(dot(&rig), (-4.0 * T, colors().text_on_accent.to_color32()));
     rig.tap(mute.center());
     let target = AutomationTarget {
         instance_id: 0,
@@ -500,8 +500,11 @@ fn mute_is_the_inverted_pill_and_a_tap_toggles_param_2() {
     };
     assert_eq!(rig.changes, [(1, target, 1.0)]);
     assert_eq!(rig.song.channels[1].params.0[2], 1.0);
-    // Muted: down (+4t) in `menuFill`.
-    assert_eq!(dot(&rig), (4.0 * T, colors().menu_fill.to_color32()));
+    // Muted: down (+4t) in dimmed `text`.
+    assert_eq!(
+        dot(&rig),
+        (4.0 * T, colors().text.to_color32().gamma_multiply(0.55))
+    );
     // The touch goes to the app's recent control.
     assert_eq!(rig.touch.map(|t| (t.0, t.1.target)), Some((1, target)));
 }
@@ -608,9 +611,10 @@ fn the_sliders_are_3t_tracks_whose_thumbs_grow_from_4_5t_to_5_985t() {
         part(RowKind::Primary, 1, LEVEL),
     );
     let control_fill = colors().control_fill.to_color32();
+    // The glass thumb's outer disc is in `text`; its shadow and its channel lens differ.
     let thumb = |at: Rect| {
         (rig.circles().into_iter())
-            .filter(|c| at.contains(c.0) && c.2 == control_fill)
+            .filter(|c| at.contains(c.0) && c.2 == colors().text.to_color32())
             .map(|c| c.1)
             .next()
             .unwrap()
@@ -777,14 +781,18 @@ fn a_module_param_track_shows_a_menu_fill_slider_bound_to_the_param() {
             .count()
     };
     assert_eq!(in_rect(pan), 0);
-    assert_eq!(in_rect(module), 2);
+    // The glass thumb: its shadow, the glass disc and the lens inside it.
+    assert_eq!(in_rect(module), 3);
     let track = (rig.rects().into_iter())
         .find(|&(rr, _)| rr.height() == 3.0 * T && module.contains(rr.center()));
     assert_eq!(track.map(|t| t.1), Some(menu_fill));
-    let rim = (rig.circles().into_iter())
-        .find(|c| module.contains(c.0))
+    // The lens takes the slider's colour (the channel's colour), dimmed a little inside the glass.
+    let ink = crate::theme::channel_color(rig.song.channels[1].hue, &crate::theme::theme_by_id(0))
+        .to_color32();
+    let lens = (rig.circles().into_iter())
+        .find(|c| module.contains(c.0) && c.2 == ink.gamma_multiply(0.85))
         .map(|c| c.2);
-    assert_eq!(rim, Some(menu_fill));
+    assert_eq!(lens, Some(ink.gamma_multiply(0.85)));
     // It shows the live value and sets it.
     let v0 = rig.song.channels[1].param(target).unwrap();
     let len = module.width() - U;

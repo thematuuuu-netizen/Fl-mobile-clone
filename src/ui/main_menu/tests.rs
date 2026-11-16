@@ -1868,14 +1868,18 @@ fn the_new_menu_sits_on_a_whole_pixel_grid_at_ppp_1_and_2() {
             let step = pair[1].center().y - pair[0].center().y;
             assert!((step - m.u(1.25)).abs() <= 1.0 / ppp, "ppp {ppp}: {step}");
         }
-        // The popup is the `text`-coloured fill that holds the five labels, inside the tab's area, 0.5 U padding
-        // either side of the widest label.
-        let text = theme_by_id(0).colors.text.to_color32();
+        // The popup is the dark glass sheet's ground fill that holds the five labels, inside the tab's
+        // area, 0.5 U padding either side of the widest label.
+        let ground = theme_by_id(0)
+            .colors
+            .background
+            .to_color32()
+            .gamma_multiply(0.94);
         let fill = rig
             .shapes
             .iter()
             .filter_map(|c| match &c.shape {
-                egui::Shape::Rect(r) if r.fill == text => Some(r.rect),
+                egui::Shape::Rect(r) if r.fill == ground => Some(r.rect),
                 _ => None,
             })
             .filter(|r| boxes.iter().all(|b| r.contains_rect(*b)))

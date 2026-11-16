@@ -2042,10 +2042,11 @@ mod tests {
                     (a.min - pill.min).abs().max_elem() < 0.01
                         && (a.max - pill.max).abs().max_elem() < 0.01
                 };
+                // The pill's fill: `controlFill` while off, the channel (`text` here) while on.
                 assert!(
                     fills
                         .iter()
-                        .any(|(a, c)| *c == dim(control_fill) && near(a)),
+                        .any(|(a, c)| { (*c == dim(control_fill) || *c == dim(text)) && near(a) }),
                     "{at}: no pill {pill:?}"
                 );
                 // The label: from x + 1.7 U (within 0.1 U), whole, 10 pt, in `text`, ending 0.2 U short of the right.
@@ -2155,10 +2156,15 @@ mod tests {
     }
 
     #[test]
-    fn the_pill_dots_are_text_when_on_and_menu_fill_when_off_4_t_from_the_middle() {
-        // The on-dot is `text`, the off-dot `menuFill`; radius 2 t, 4 t above (on) or below (off) the pill's centre.
+    fn the_pill_dots_are_background_when_on_and_dimmed_text_when_off_4_t_from_the_middle() {
+        // A settings toggle's channel is `text`, so its pill is near-white when on and the dot takes
+        // `background` to stay visible; the off-dot is dimmed `text`. Radius 2 t, 4 t above (on) or below
+        // (off) the pill's centre.
         let colors = theme_by_id(0).colors;
-        let (text, menu_fill) = (colors.text.to_color32(), colors.menu_fill.to_color32());
+        let (on_dot, off_dot) = (
+            colors.background.to_color32(),
+            colors.text.to_color32().gamma_multiply(0.55),
+        );
         for (ppp, scale) in CONFIGS {
             let mut rig = Rig::at(ppp, scale, WIDE_U);
             let m = Metrics::from_pixels_per_point(ppp, scale);
@@ -2188,7 +2194,7 @@ mod tests {
                         rig.left + 2.25 * u,
                         middle + if on { -4.0 * t } else { 4.0 * t },
                     ),
-                    if on { text } else { menu_fill },
+                    if on { on_dot } else { off_dot },
                 )];
                 assert_eq!(found.len(), 1, "{at}: {label}: {found:?}");
                 assert!(
@@ -2201,7 +2207,7 @@ mod tests {
             let middle = rig.rect_of(row_id(index("Enable ghost notes"))).center().y;
             let found = dots(&rig, "Enable ghost notes");
             assert!(
-                (found[0].0.y - (middle + 4.0 * t)).abs() < 0.01 && found[0].1 == menu_fill,
+                (found[0].0.y - (middle + 4.0 * t)).abs() < 0.01 && found[0].1 == off_dot,
                 "{at}: {found:?}"
             );
         }
@@ -2460,10 +2466,10 @@ mod tests {
         let at = at.unwrap() + 1;
         assert_eq!(rig.tab.rows()[at].label, "Screen orientation:");
         assert!(rig.texts().iter().any(|t| t == "Screen orientation:"));
-        // `Landscape`, the third item, stores index 2.
+        // `Auto`, the first item, stores index 0 (the default is `Landscape`, index 2).
         rig.click(rig.rect_of(row_id(at)).center());
-        rig.click(rig.rect_of(popup_id().with((0_usize, 2_usize))).center());
-        assert_eq!(rig.settings.screen_orientation, 2);
+        rig.click(rig.rect_of(popup_id().with((0_usize, 0_usize))).center());
+        assert_eq!(rig.settings.screen_orientation, 0);
         assert!(rig.take_changed());
     }
 

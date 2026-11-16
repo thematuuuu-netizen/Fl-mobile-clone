@@ -574,7 +574,7 @@ fn strip_controls_edit_their_slot_params() {
     use DrumsAction::Param;
     let mut rig = Rig::new(View::Strips);
     // Mix: the pill flips Mute, the text toggle Solo, the sliders drag Pan and Level. The pill is the mixer's inverted
-    // one: dot up in the channel colour while audible, down in `menuFill` once muted (issue #36).
+    // one: dot up in `textOnAccent` while audible, down in dimmed text once muted (issue #36).
     let dot = |rig: &Rig| {
         let rect = rig.rect_at(1, Ctl::Mute);
         (rig.shapes.iter()).find_map(|c| match &c.shape {
@@ -584,12 +584,15 @@ fn strip_controls_edit_their_slot_params() {
             _ => None,
         })
     };
-    let menu = theme_by_id(0).colors.menu_fill.to_color32();
-    assert_eq!(dot(&rig), Some((true, Color32::RED)));
+    let colors = theme_by_id(0).colors;
+    assert_eq!(dot(&rig), Some((true, colors.text_on_accent.to_color32())));
     rig.click(rig.at(1, Ctl::Mute));
     assert_eq!(rig.actions, [Param { slot: 1, param: 3 }]);
     assert_eq!(rig.kit.slots[1].params[3], 1.0);
-    assert_eq!(dot(&rig), Some((false, menu)));
+    assert_eq!(
+        dot(&rig),
+        Some((false, colors.text.to_color32().gamma_multiply(0.55)))
+    );
     rig.click(rig.at(2, Ctl::Solo));
     assert_eq!(rig.actions, [Param { slot: 2, param: 4 }]);
     assert_eq!(rig.kit.slots[2].params[4], 1.0);
