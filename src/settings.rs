@@ -355,6 +355,11 @@ pub struct Settings {
     /// tag fields into the file ([`crate::project_files::export::tags`]). On by default.
     #[serde(rename = "writeTagsOnExport")]
     pub write_tags: bool,
+    /// The main menu drawer's width (our own key): where a drag on the drawer's left edge left it, in U, kept
+    /// over restarts. 20 by default; a load clamps it to the drawer's bounds
+    /// ([`crate::ui::main_menu::MENU_W_MIN`]..=[`crate::ui::main_menu::MENU_W_MAX`]).
+    #[serde(rename = "menuWidth")]
+    pub menu_width: f32,
 }
 
 /// `Project version size limit:`'s items, in MB.
@@ -432,6 +437,7 @@ impl Default for Settings {
             picker_keys: true,
             rack_tab_place: 0.5,
             write_tags: true,
+            menu_width: 20.0,
         }
     }
 }
@@ -535,6 +541,13 @@ impl Settings {
         if usize::from(s.screen_orientation) >= ORIENTATIONS.len() {
             s.screen_orientation = d.screen_orientation;
         }
+        if !s.menu_width.is_finite() {
+            s.menu_width = d.menu_width;
+        }
+        s.menu_width = s.menu_width.clamp(
+            crate::ui::main_menu::MENU_W_MIN,
+            crate::ui::main_menu::MENU_W_MAX,
+        );
         if !VERSION_SIZE_LIMITS.contains(&s.version_size_limit) {
             s.version_size_limit = d.version_size_limit;
         }
@@ -884,6 +897,7 @@ mod tests {
             picker_keys: !d.picker_keys,
             rack_tab_place: 0.25,
             write_tags: !d.write_tags,
+            menu_width: 26.5,
         }
     }
 
@@ -1113,6 +1127,7 @@ mod tests {
                 "lowlatency",
                 "mcpEnabled",
                 "mcpPort",
+                "menuWidth",
                 "middlec4",
                 "midiApplyNoteEffects",
                 "mtmlevel",

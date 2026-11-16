@@ -211,7 +211,8 @@ fn the_logo_lies_over_the_open_rack_and_takes_its_tap_under_the_main_menu() {
     );
     rig.frame(vec![]);
     let menu_fill = rig.app.theme.colors.menu_fill.to_color32();
-    let corner = pos2(1169.0, 1.0);
+    // Just inside the floating sheet's top-right corner (the sheet is inset from the screen's edges).
+    let corner = pos2(1161.0, 9.0);
     let menu = (rig.out.shapes.iter()).rposition(
         |s| matches!(&s.shape, Shape::Rect(r) if r.fill == menu_fill && r.rect.contains(corner)),
     );

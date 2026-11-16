@@ -40,6 +40,12 @@ pub fn paint_glass_tinted(
         fill = tinted(fill, tint, 0.45);
     }
     painter.rect_filled(rect, radius, fill);
+    paint_glass_frame(painter, rect, radius, colors);
+}
+
+/// Paints only a glass frame — the border and the top highlight, no fill — for a surface that paints its
+/// own body under one frame (the main menu's sheet: its body and header are separate fills).
+pub fn paint_glass_frame(painter: &Painter, rect: Rect, radius: f32, colors: &ThemeColors) {
     // The border is a stroked path along the outline, not a rect shape: the app's shape archaeology (and
     // its tests) reads rects as surfaces, and a glass edge is not one.
     painter.add(egui::Shape::closed_line(

@@ -5351,7 +5351,6 @@ mod tests {
             "13m 2s",
             "10 October 2026 23:55:03",
             "11 October 2026 00:02:20",
-            "Me",
         ] {
             assert!(rig.painted(text), "{text}");
         }
@@ -5372,6 +5371,10 @@ mod tests {
                 rig.frame(vec![]);
             }
         };
+        // The author sits just under the fold of the floating sheet (it is inset, so the page is a little
+        // shorter than the screen): a small scroll brings it in.
+        scroll(&mut rig, -300.0);
+        assert!(rig.painted("Me"));
         scroll(&mut rig, -5000.0);
         assert!(rig.painted("example.com"));
         // Typed into the song's META: an unsaved change, as the title is, and nothing for the audio or the history.

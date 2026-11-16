@@ -284,23 +284,24 @@ fn m() -> Metrics {
 fn the_menu_is_at_most_20_u_wide_on_the_right_with_the_tab_row_under_the_header() {
     let screen = Rect::from_min_size(Pos2::ZERO, SIZE.into());
     let l = shell_layout(screen, &m());
-    // 20 U of a 1170 point screen (U = 32).
+    // 20 U of a 1170 point screen (U = 32), floating: inset 0.25 U (8 points) from the right, top and
+    // bottom edges.
     assert_eq!(
         l.panel,
-        Rect::from_min_max(pos2(530.0, 0.0), pos2(1170.0, 540.0))
+        Rect::from_min_max(pos2(522.0, 8.0), pos2(1162.0, 532.0))
     );
     // Header 1.75 U with 0.5 U side insets; tabs 1.25 U across the panel; a 0.25 U gap, 0.5 U insets.
     assert_eq!(
         l.header,
-        Rect::from_min_max(pos2(546.0, 0.0), pos2(1154.0, 56.0))
+        Rect::from_min_max(pos2(538.0, 8.0), pos2(1146.0, 64.0))
     );
     assert_eq!(
         l.tabs,
-        Rect::from_min_max(pos2(530.0, 56.0), pos2(1170.0, 96.0))
+        Rect::from_min_max(pos2(522.0, 64.0), pos2(1162.0, 104.0))
     );
     assert_eq!(
         l.content,
-        Rect::from_min_max(pos2(546.0, 104.0), pos2(1154.0, 524.0))
+        Rect::from_min_max(pos2(538.0, 112.0), pos2(1146.0, 516.0))
     );
     // A narrower screen: the whole width.
     let narrow = Rect::from_min_size(Pos2::ZERO, vec2(600.0, 540.0));
@@ -1364,7 +1365,9 @@ fn panel_and_dim(rig: &Rig) -> (Rect, f32) {
     let mut dim = 0.0;
     for c in &rig.shapes {
         if let egui::Shape::Rect(r) = &c.shape {
-            if r.fill == fill && r.rect.height() == screen.height() {
+            // The sheet's body is the largest `menuFill` rect (it floats now, so it no longer stands the
+            // screen's full height).
+            if r.fill == fill && panel.is_none_or(|p: Rect| r.rect.area() > p.area()) {
                 panel = Some(r.rect);
             }
             if r.rect == screen
@@ -1386,7 +1389,7 @@ fn the_menu_slides_in_from_the_right_over_10_frames_as_the_screen_dims() {
         rig.frame(vec![]);
         let u4 = crate::ui::anim::menu_slide(n as f32 / 60.0).powi(4);
         let (panel, dim) = panel_and_dim(&rig);
-        let want = 530.0 + (u4 * w).trunc();
+        let want = 522.0 + (u4 * w).trunc();
         assert!((panel.left() - want).abs() <= 1.0, "frame {n}: {panel:?}");
         assert!((dim - 0.6 * (1.0 - u4)).abs() < 0.01, "frame {n}: {dim}");
     }
@@ -1434,7 +1437,7 @@ fn a_tab_change_slides_only_the_page_in_again() {
         assert!((page.left() - want.left() - dx).abs() <= 1.0, "frame {n}");
         assert_eq!(
             panel_and_dim(&rig).0.left(),
-            530.0,
+            522.0,
             "frame {n}: the panel stays"
         );
     }
@@ -1655,8 +1658,9 @@ fn the_performance_block_is_one_5_u_block_2_u_in_from_the_page_and_1_3_u_under_i
 }
 
 #[test]
-fn hide_and_reset_are_text_discs_of_radius_0_7_u_with_a_module_fill_rim_and_label() {
-    // Each is a `text` disc of radius 0.7 U with a 2 px `moduleFill` rim, its label FontSize 1 (8 pt) in `moduleFill`.
+fn hide_and_reset_are_glass_discs_of_radius_0_7_u_with_a_text_label() {
+    // Each is a dark glass disc of radius 0.7 U — a `moduleFill` ground under the glass, the glass border
+    // for its rim — its label FontSize 1 (8 pt) in `text`.
     let colors = theme_by_id(0).colors;
     let (text, module_fill) = (colors.text.to_color32(), colors.module_fill.to_color32());
     for ppp in [1.0, 2.0] {
@@ -1671,14 +1675,16 @@ fn hide_and_reset_are_text_discs_of_radius_0_7_u_with_a_module_fill_rim_and_labe
                 text_of(rig, label).unwrap_or_else(|| panic!("{at}: no {label}"));
             assert_eq!(
                 (ink, font),
-                (module_fill, m.font_id(FontSize::Pt8)),
+                (text, m.font_id(FontSize::Pt8)),
                 "{at}: {label}"
             );
             let discs = circles(rig);
             let disc = discs
                 .iter()
-                .find(|d| d.1 > 0.6 * u && d.2 == text && (d.0 - rect.center()).length() < 2.0)
-                .unwrap_or_else(|| panic!("{at}: no `text` disc under {label}: {discs:?}"));
+                .find(|d| {
+                    d.1 > 0.6 * u && d.2 == module_fill && (d.0 - rect.center()).length() < 2.0
+                })
+                .unwrap_or_else(|| panic!("{at}: no ground disc under {label}: {discs:?}"));
             assert!(
                 (disc.1 - 0.7 * u).abs() < 0.01,
                 "{at}: {label} radius {}",
@@ -1690,7 +1696,7 @@ fn hide_and_reset_are_text_discs_of_radius_0_7_u_with_a_module_fill_rim_and_labe
             let rim = rim.unwrap_or_else(|| panic!("{at}: no rim on {label}"));
             assert_eq!(
                 (rim.3, rim.4),
-                (2.0 / ppp, module_fill),
+                (1.0, colors.glass_border().to_color32()),
                 "{at}: {label} rim"
             );
             disc.0
@@ -2138,9 +2144,9 @@ fn ctrl_f_shows_the_songs_bar_over_the_breadcrumb_and_list_which_move_down_1_75_
     rig.ctrl_f();
     rig.frame(vec![]);
     assert!(rig.searching());
-    // The browser: the content left of the big circles' 2.5 U column (546..1074 at U = 32), from the content's top.
+    // The browser: the content left of the big circles' 2.5 U column (538..1066 at U = 32), from the content's top.
     let id = Id::new("main_menu_songs");
-    let bar = Rect::from_min_size(pos2(546.0 + 56.0, 104.0 + 8.0), vec2(528.0 - 64.0, 48.0));
+    let bar = Rect::from_min_size(pos2(538.0 + 56.0, 112.0 + 8.0), vec2(528.0 - 64.0, 48.0));
     assert_eq!(
         rig.rect_of(id.with("search").with("clear")),
         bar.with_min_x(bar.right() - 64.0)

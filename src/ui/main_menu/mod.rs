@@ -1,5 +1,6 @@
-//! The main menu, opened from the app logo. It is a `menuFill` panel on the right of the screen, 20 U wide or the whole
-//! screen if that is narrower:
+//! The main menu, opened from the app logo. It is a floating `menuFill` sheet on the right of the screen — inset
+//! from the edges with rounded corners and a glass frame — 20 U wide by default or the whole screen if that is
+//! narrower (or portrait); a drag on its left edge widens or narrows it, and the width is kept in the settings:
 //! - a header with `Help` at the left, the close X at the right, and centred between them the logo glyph, [`APP_NAME`]
 //!   and our version;
 //! - the tab row `SONGS PROJECT SETTINGS UPDATES` across the panel in equal cells, the active tab underlined in `text`
@@ -13,8 +14,8 @@
 //! the Help menu.
 
 use eframe::egui::{
-    Align, Align2, Color32, Id, Painter, Pos2, Rect, Response, RichText, Sense, Stroke, TextEdit,
-    Ui, emath::TSTransform, pos2, vec2,
+    Align, Align2, Color32, CornerRadius, Id, Painter, Pos2, Rect, Response, RichText, Sense,
+    TextEdit, Ui, emath::TSTransform, pos2, vec2,
 };
 
 use crate::APP_NAME;
@@ -58,6 +59,14 @@ pub use songs::{SongsPreview, Sort};
 
 // Sizes in U.
 const PANEL_W: f32 = 20.0;
+/// A drag on the drawer's left edge keeps its width inside these, in U.
+pub const MENU_W_MIN: f32 = 13.0;
+pub const MENU_W_MAX: f32 = 32.0;
+/// The floating sheet's inset from the screen's edges, and its corner radius, in U.
+const SHEET_INSET: f32 = 0.25;
+const SHEET_RADIUS: f32 = 0.5;
+/// The sheet edge's drag strip reaches this far either side of the edge, in U.
+const EDGE_REACH: f32 = 0.3;
 const HEADER_H: f32 = 1.75;
 const TAB_H: f32 = 1.25;
 /// Inset of the header, tab strip and content from the panel's edges, and the gap under the tab strip.
@@ -205,7 +214,8 @@ fn help_menu(ctx: &eframe::egui::Context, cx: &UiCtx, id: Id, at: Pos2) -> Popup
 /// Where the menu's parts go on a screen.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct ShellLayout {
-    /// The right of the screen: 20 U wide, or the whole screen if that is narrower or portrait
+    /// The floating sheet: on the right of the screen, inset from its edges, the drawer's width
+    /// ([`shell_layout_w`]), or the whole screen if that is narrower or portrait
     /// ([`is_portrait`](crate::metrics::is_portrait)).
     pub panel: Rect,
     pub header: Rect,
@@ -215,13 +225,34 @@ pub struct ShellLayout {
     pub content: Rect,
 }
 
-/// Lays the menu out on `screen`.
+/// Lays the menu out on `screen` at the default width.
 pub fn shell_layout(screen: Rect, m: &Metrics) -> ShellLayout {
+    shell_layout_w(screen, m, PANEL_W)
+}
+
+/// Lays the menu out on `screen`, the drawer `width_u` wide (clamped to
+/// [`MENU_W_MIN`]..=[`MENU_W_MAX`]) unless the screen is portrait or narrower than the drawer, where the
+/// sheet takes the whole screen and there is nothing to float.
+pub fn shell_layout_w(screen: Rect, m: &Metrics, width_u: f32) -> ShellLayout {
     let w = match crate::metrics::is_portrait(screen) {
         true => screen.width(),
-        false => m.u(PANEL_W).min(screen.width()),
+        false => m
+            .u(width_u.clamp(MENU_W_MIN, MENU_W_MAX))
+            .min(screen.width()),
     };
-    let panel = screen.with_min_x(screen.right() - w);
+    let panel = match w >= screen.width() {
+        true => screen.with_min_x(screen.right() - w),
+        false => Rect::from_min_max(
+            pos2(
+                screen.right() - m.u(SHEET_INSET) - w,
+                screen.top() + m.u(SHEET_INSET),
+            ),
+            pos2(
+                screen.right() - m.u(SHEET_INSET),
+                screen.bottom() - m.u(SHEET_INSET),
+            ),
+        ),
+    };
     let inner = panel.shrink(m.u(PAD));
     let header = inner
         .with_min_y(panel.top())
@@ -328,7 +359,7 @@ impl MainMenu {
         let c = &cx.theme.colors;
         let screen = ui.max_rect();
         let id = Id::new("main_menu");
-        let l = shell_layout(screen, m);
+        let l = shell_layout_w(screen, m, settings.1.menu_width);
         // The opening slide: the panel is drawn shifted right by trunc(u⁴·W) device px while the screen dims to
         // α 0.6·(1 − u⁴); a tab change slides the page in again. Only the drawing moves: the touch areas are at rest
         // from the first frame, and the handlers never check the animation.
@@ -388,13 +419,61 @@ impl MainMenu {
             action = Some(MainMenuAction::Close);
         }
         ui.interact(l.panel, id.with("panel"), Sense::click_and_drag());
-        // Panel fills: the body, the full panel, is `menuFill`; the header (1.75 U) is
-        // `moduleFill`; the tab row is `menuFill` too, so it has none of its own.
+        // The sheet's left edge is a drag handle (a floating sheet only: a full-screen panel has no edge
+        // to pull): pulling it widens or narrows the drawer, and the width is kept in the settings. The
+        // strip is interacted after the panel's swallow and before its pages, so a drag that starts on
+        // the edge is the drawer's own, and the pages' widgets still win where they overlap it.
+        let edge_id = id.with("edge");
+        let floating = l.panel.left() > screen.left();
+        if floating {
+            let strip = Rect::from_x_y_ranges(
+                l.panel.left() - m.u(EDGE_REACH)..=l.panel.left() + m.u(EDGE_REACH),
+                l.panel.y_range(),
+            );
+            let edge = crate::ui::focus::interact(ui, strip, edge_id, Sense::click_and_drag())
+                .on_hover_cursor(eframe::egui::CursorIcon::ResizeHorizontal);
+            if edge.drag_started() {
+                ui.data_mut(|d| d.insert_temp(edge_id, settings.1.menu_width));
+            }
+            if edge.dragged() {
+                let start = ui
+                    .data(|d| d.get_temp::<f32>(edge_id))
+                    .unwrap_or(settings.1.menu_width);
+                let total = edge.total_drag_delta().unwrap_or_default();
+                settings.1.menu_width = (start - total.x / m.u(1.0)).clamp(MENU_W_MIN, MENU_W_MAX);
+            }
+            if edge.drag_stopped() {
+                ui.data_mut(|d| d.remove_temp::<f32>(edge_id));
+            }
+        }
+        // Panel fills: the sheet's body is `menuFill`; the header (1.75 U) is `moduleFill`, its top
+        // corners rounded to the sheet's; the tab row is `menuFill` too, so it has none of its own. Over
+        // the body, one glass frame (border and top highlight, no fill of its own), and the drag grip: a
+        // short pill centred on the sheet's left edge.
+        let radius = m.u(SHEET_RADIUS);
         ui.painter()
-            .rect_filled(l.panel, 0.0, c.menu_fill.to_color32());
+            .rect_filled(l.panel, radius, c.menu_fill.to_color32());
         let header = Rect::from_x_y_ranges(l.panel.x_range(), l.header.y_range());
-        ui.painter()
-            .rect_filled(header, 0.0, c.module_fill.to_color32());
+        let r8 = radius.round().clamp(0.0, 255.0) as u8;
+        ui.painter().rect_filled(
+            header,
+            CornerRadius {
+                nw: r8,
+                ne: r8,
+                sw: 0,
+                se: 0,
+            },
+            c.module_fill.to_color32(),
+        );
+        crate::ui::glass::paint_glass_frame(ui.painter(), l.panel, radius, c);
+        if floating {
+            let grip = Rect::from_center_size(
+                pos2(l.panel.left(), l.panel.center().y),
+                vec2(m.t() * 1.5, m.u(2.0)),
+            );
+            ui.painter()
+                .rect_filled(grip, grip.width() / 2.0, text.gamma_multiply(0.35));
+        }
 
         // Header: `Help` in a 2 U cell at the left, the close X in one at the right, and between them, centred as a
         // group, the logo, our name and the version. The header itself is no button.
@@ -560,11 +639,12 @@ impl MainMenu {
 /// How a circle button is drawn.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum CircleStyle {
-    /// A `text` disc with `menuFill` ink.
+    /// A dark glass disc (`moduleFill` ground under glass) with `text` ink.
     Light,
     /// A `text` ring with `text` ink.
     Outline,
-    /// A `text` disc with a 2 px `moduleFill` rim and `moduleFill` ink: PROJECT's `Detach`, `Hide` and `Reset`.
+    /// A dark glass disc with `text` ink, its touch area the `hit` box where it has one: PROJECT's
+    /// `Detach`, `Hide` and `Reset`.
     Rimmed,
 }
 
@@ -578,7 +658,7 @@ struct Circle<'a> {
     icon: Option<IconId>,
     font: FontSize,
     style: CircleStyle,
-    /// Disabled: no input, drawn at [`DISABLED_ALPHA`] (only the ink, on a light disc).
+    /// Disabled: no input, drawn at [`DISABLED_ALPHA`] (only the ink, on its glass disc).
     enabled: bool,
     /// The touch area, a square this many points across (a [`CircleStyle::Rimmed`] button's box), instead of the
     /// disc's own.
@@ -614,19 +694,29 @@ fn circle_button(ui: &mut Ui, cx: &UiCtx, c: &Circle) -> bool {
             color.gamma_multiply(DISABLED_ALPHA)
         }
     };
+    // The filled styles are dark glass now: a `moduleFill` ground disc (which keeps the hover lightening
+    // of `filled_circle_button` and its boxed kin) with the glass treatment over it, and `text` ink.
+    let glass = |ui: &Ui| {
+        crate::ui::glass::paint_glass_disc(ui.painter(), c.center, c.diameter / 2.0, colors);
+    };
     let (response, ink) = match c.style {
-        CircleStyle::Light => (
-            filled_circle_button(ui, c.id, c.center, c.diameter, text),
-            dim(colors.menu_fill.to_color32()),
-        ),
+        CircleStyle::Light => {
+            let response = filled_circle_button(
+                ui,
+                c.id,
+                c.center,
+                c.diameter,
+                colors.module_fill.to_color32(),
+            );
+            glass(ui);
+            (response, dim(text))
+        }
         CircleStyle::Rimmed => {
             let module_fill = colors.module_fill.to_color32();
-            let px = 1.0 / m.ppp();
-            let radius = c.diameter / 2.0 - px;
-            let rim = Stroke::new(2.0 * px, module_fill);
             if let Some(hit) = c.hit {
-                let response = boxed_circle_button(ui, c.id, c.center, c.diameter, hit, text);
-                ui.painter().circle_stroke(c.center, radius, rim);
+                let response =
+                    boxed_circle_button(ui, c.id, c.center, c.diameter, hit, module_fill);
+                glass(ui);
                 let rect = Rect::from_center_size(c.center, vec2(c.diameter, c.diameter));
                 text_label(
                     ui,
@@ -635,13 +725,13 @@ fn circle_button(ui: &mut Ui, cx: &UiCtx, c: &Circle) -> bool {
                     c.label,
                     c.font,
                     Align2::CENTER_CENTER,
-                    dim(module_fill),
+                    dim(text),
                 );
                 return c.enabled && response.clicked();
             }
-            let response = filled_circle_button(ui, c.id, c.center, c.diameter, text);
-            ui.painter().circle_stroke(c.center, radius, rim);
-            (response, dim(module_fill))
+            let response = filled_circle_button(ui, c.id, c.center, c.diameter, module_fill);
+            glass(ui);
+            (response, dim(text))
         }
         CircleStyle::Outline => {
             let ink = dim(text);
