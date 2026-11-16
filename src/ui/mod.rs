@@ -46,6 +46,7 @@ pub mod sample_row;
 // The shared long press and the menu and panel animations.
 pub mod anim;
 pub mod gesture;
+pub mod glass;
 // The keyboard panel's hand resize and scroll zone.
 pub mod panel_resize;
 // The pitch and mod wheels.

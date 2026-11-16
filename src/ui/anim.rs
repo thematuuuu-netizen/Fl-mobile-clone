@@ -62,6 +62,46 @@ fn left(keep: f32, t: f32) -> f32 {
     keep.powf(60.0 * t)
 }
 
+/// A damped spring for `id`, integrated on frame time toward `target`: the gel of Liquid Glass. It starts at
+/// `target` the first frame it is drawn (and again after a frame undrawn, like [`elapsed`]), overshoots a
+/// little on the way, and settles. With the animations off (or in a test that has not turned them on) it sits
+/// at `target`, so drawn shapes stay deterministic.
+pub fn spring(ctx: &Context, id: Id, target: f32) -> f32 {
+    if !enabled(ctx) {
+        return target;
+    }
+    let now = ctx.cumulative_frame_nr();
+    let key = id.with("spring");
+    let stored = ctx.data(|d| d.get_temp::<(f32, f32, u64)>(key));
+    let (mut x, mut v) = match stored {
+        Some((x, _, last)) if last == now => return x,
+        Some((x, v, last)) if last + 1 == now => (x, v),
+        _ => (target, 0.0),
+    };
+    // Semi-implicit Euler in two substeps (stable on a stalled frame): stiffness 340, damping 24 is
+    // underdamped, so the value swells past the target by roughly a tenth and settles — a soft gel, not a snap.
+    let dt = frame_dt(ctx);
+    for _ in 0..2 {
+        let h = dt / 2.0;
+        v += (340.0 * (target - x) - 24.0 * v) * h;
+        x += v * h;
+    }
+    if (target - x).abs() < 0.001 && v.abs() < 0.01 {
+        x = target;
+        v = 0.0;
+    }
+    ctx.data_mut(|d| d.insert_temp(key, (x, v, now)));
+    x
+}
+
+/// How far a control's press has lifted it: 0 at rest, 1 pressed, springed by [`spring`] so it can pass 1 a
+/// little on the way in and out. `active` while the pointer is down on the control or it is being dragged.
+/// Callers keep the effect small (a few percent of size, a little brightness): the lift says "alive", it does
+/// not perform.
+pub fn press_lift(ctx: &Context, id: Id, active: bool) -> f32 {
+    spring(ctx, id, if active { 1.0 } else { 0.0 })
+}
+
 /// This frame's time step in seconds, at most 0.1 s: a stalled frame is one short step. Tests run at 60 fps whatever
 /// time their input reports (their rigs step the clock in tenths, for gestures).
 fn frame_dt(ctx: &Context) -> f32 {
@@ -202,5 +242,36 @@ mod tests {
         assert!(!inertia(&ctx));
         set_mode(&ctx, true, true);
         assert_eq!(step(&ctx, PANEL_KEEP), 0.5);
+    }
+
+    #[test]
+    fn the_spring_overshoots_a_little_and_settles() {
+        let ctx = Context::default();
+        let id = Id::new("springy");
+        // Animations off: at the target at once.
+        let _ = ctx.run(Default::default(), |ctx| {
+            assert_eq!(spring(ctx, id, 1.0), 1.0);
+        });
+        enable(&ctx);
+        // Rest at 0 for a few frames, then press to 1: the lift swells past 1 and settles on it.
+        let mut run = |target: f32| {
+            let mut x = 0.0;
+            let _ = ctx.run(Default::default(), |ctx| x = spring(ctx, id, target));
+            x
+        };
+        for _ in 0..5 {
+            assert_eq!(run(0.0), 0.0);
+        }
+        let (mut peak, mut last) = (0.0f32, 0.0f32);
+        for _ in 0..180 {
+            last = run(1.0);
+            peak = peak.max(last);
+        }
+        assert!(peak > 1.02 && peak < 1.3, "peak {peak}");
+        assert!((last - 1.0).abs() < 0.01, "settled at {last}");
+        // A second call in the same frame agrees with the first.
+        let _ = ctx.run(Default::default(), |ctx| {
+            assert_eq!(spring(ctx, id, 1.0), spring(ctx, id, 1.0));
+        });
     }
 }

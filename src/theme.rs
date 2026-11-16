@@ -135,6 +135,86 @@ impl ThemeColors {
         }
         best.map_or(self.background, |(c, _)| c)
     }
+
+    /// The fill of a Liquid Glass surface floating over content: a translucent white on a dark theme, a
+    /// translucent bright white on a light one. Painted straight (straight alpha), so the content under it
+    /// stays faintly visible.
+    pub fn glass_fill(&self) -> Rgba {
+        if self.is_dark() {
+            Rgba {
+                r: 1.0,
+                g: 1.0,
+                b: 1.0,
+                a: 0.10,
+            }
+        } else {
+            Rgba {
+                r: 1.0,
+                g: 1.0,
+                b: 1.0,
+                a: 0.55,
+            }
+        }
+    }
+
+    /// The hairline border of a glass surface: light-catching on dark, a soft shade on light.
+    pub fn glass_border(&self) -> Rgba {
+        if self.is_dark() {
+            Rgba {
+                r: 1.0,
+                g: 1.0,
+                b: 1.0,
+                a: 0.20,
+            }
+        } else {
+            Rgba {
+                r: 0.0,
+                g: 0.0,
+                b: 0.0,
+                a: 0.10,
+            }
+        }
+    }
+
+    /// The top highlight of a glass surface: the bright edge where the light lands.
+    pub fn glass_highlight(&self) -> Rgba {
+        if self.is_dark() {
+            Rgba {
+                r: 1.0,
+                g: 1.0,
+                b: 1.0,
+                a: 0.28,
+            }
+        } else {
+            Rgba {
+                r: 1.0,
+                g: 1.0,
+                b: 1.0,
+                a: 0.65,
+            }
+        }
+    }
+
+    /// A hairline separator between grouped content: the menu fill (`#3A3A3C` on iOS Dark).
+    pub fn separator(&self) -> Rgba {
+        self.menu_fill
+    }
+
+    /// Secondary label colour: the text at 60 % (iOS's secondary label).
+    pub fn label_secondary(&self) -> Rgba {
+        Rgba {
+            a: self.text.a * 0.6,
+            ..self.text
+        }
+    }
+
+    /// Tertiary label colour: the text at 30 %.
+    pub fn label_tertiary(&self) -> Rgba {
+        Rgba {
+            a: self.text.a * 0.3,
+            ..self.text
+        }
+    }
 }
 
 /// The least `playlistTrackNoteBrightness` a theme loads with: the muted-clip tint divides by it on a theme with a
@@ -421,15 +501,39 @@ pub fn hsl_to_rgb(h: f32, s: f32, l: f32) -> (f32, f32, f32) {
     (channel(h + 0.33333), channel(h), channel(h - 0.33333))
 }
 
-/// Colour of a channel with hue value `h` (clamped to `[0,1]`) under `theme`.
+/// The iOS system colours a channel's hue snaps to, in hue order: red, orange, yellow, green, teal, blue,
+/// purple, pink. Channels used to take any HSL colour at the theme's accent saturation and lightness, which
+/// read as a loud rainbow; snapping keeps every channel on the system palette while the stored hue still
+/// spreads channels around the wheel.
+pub const IOS_SYSTEM_COLORS: [(f32, Rgba); 8] = [
+    (0.0089, Rgba::hex(0xFF3B30)),
+    (0.0974, Rgba::hex(0xFF9500)),
+    (0.1333, Rgba::hex(0xFFCC00)),
+    (0.3753, Rgba::hex(0x34C759)),
+    (0.5521, Rgba::hex(0x5AC8FA)),
+    (0.5869, Rgba::hex(0x007AFF)),
+    (0.7774, Rgba::hex(0xAF52DE)),
+    (0.9683, Rgba::hex(0xFF2D55)),
+];
+
+/// Colour of a channel with hue value `h` (clamped to `[0,1]`): the hue wheel is the one it has always been
+/// (`0.83 + 0.73·h`), but the result snaps to the nearest of [`IOS_SYSTEM_COLORS`] by hue, so a channel is
+/// always an iOS system colour. `theme` no longer tints it (the palette is fixed); it stays in the signature
+/// for the callers.
 pub fn channel_color(h: f32, theme: &Theme) -> Rgba {
+    let _ = theme;
     let hue = (0.83 + 0.73 * h.clamp(0.0, 1.0)).rem_euclid(1.0);
-    let (r, g, b) = hsl_to_rgb(
-        hue,
-        theme.options.accent_saturation,
-        theme.options.accent_lightness,
-    );
-    Rgba::rgb(r, g, b)
+    let mut best = IOS_SYSTEM_COLORS[0].1;
+    let mut best_dist = f32::MAX;
+    for (system_hue, color) in IOS_SYSTEM_COLORS {
+        let d = (hue - system_hue).abs();
+        let d = d.min(1.0 - d);
+        if d < best_dist {
+            best_dist = d;
+            best = color;
+        }
+    }
+    best
 }
 
 #[cfg(test)]
@@ -582,15 +686,43 @@ mod tests {
     }
 
     #[test]
-    fn channel_color_cyan() {
+    fn channel_color_snaps_to_the_ios_system_palette() {
+        // h = 0.9178 turns the wheel to 0.50, whose nearest system hue is the teal `5AC8FA`.
         let c = channel_color(0.9178, &theme_by_id(0));
-        assert_color_near(c, 0x4CF5F5, 3.0 / 255.0);
+        assert_color_near(c, 0x5AC8FA, 1.0 / 255.0);
         assert_eq!(c.a, 1.0);
+        // h = 0 sits at 0.83 on the wheel: purple. h = 1 at 0.56: teal again.
+        assert_color_near(channel_color(0.0, &theme_by_id(0)), 0xAF52DE, 1.0 / 255.0);
+        assert_color_near(channel_color(1.0, &theme_by_id(0)), 0x5AC8FA, 1.0 / 255.0);
+        // Every hue lands exactly on a system colour.
+        for i in 0..=20 {
+            let c = channel_color(i as f32 / 20.0, &theme_by_id(0));
+            assert!(
+                IOS_SYSTEM_COLORS.iter().any(|&(_, s)| s == c),
+                "h {} gave {}",
+                i as f32 / 20.0,
+                c.to_hex()
+            );
+        }
         // h is clamped: 5.0 behaves like 1.0.
         assert_eq!(
             channel_color(5.0, &theme_by_id(0)),
             channel_color(1.0, &theme_by_id(0))
         );
+    }
+
+    #[test]
+    fn glass_colours_come_from_the_theme() {
+        let dark = theme_by_id(0).colors;
+        assert!(dark.is_dark());
+        assert_eq!(dark.glass_fill().a, 0.10);
+        assert_eq!(dark.glass_border().a, 0.20);
+        assert_eq!(dark.separator(), dark.menu_fill);
+        assert!((dark.label_secondary().a - 0.6).abs() < 1e-6);
+        let light = theme_by_id(3).colors;
+        assert!(!light.is_dark());
+        assert_eq!(light.glass_fill().a, 0.55);
+        assert_eq!(light.glass_border().a, 0.10);
     }
 
     #[test]

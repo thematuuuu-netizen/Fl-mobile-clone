@@ -286,7 +286,8 @@ pub struct Settings {
     /// default.
     #[serde(rename = "sampleMemoryLimit")]
     pub sample_memory_limit: u8,
-    /// `Screen orientation:` (our own key; #41, Android only): an index into [`ORIENTATIONS`], `Auto` (0) by default.
+    /// `Screen orientation:` (our own key; #41, Android only): an index into [`ORIENTATIONS`], `Landscape` (2) by
+    /// default — the app is a landscape workstation, so a fresh install opens sideways without a settings trip.
     #[serde(rename = "screenOrientation")]
     pub screen_orientation: u8,
     /// The song file open at the last exit (our own key; #58), which the next start opens again; ""
@@ -415,7 +416,7 @@ impl Default for Settings {
             velocity_snap: ValueSnap::OFF,
             pan_snap: ValueSnap::OFF,
             sample_memory_limit: 0,
-            screen_orientation: 0,
+            screen_orientation: 2,
             last_song: String::new(),
             interrupted_loading: false,
             grid_size: GridSize::Auto,
@@ -1151,8 +1152,9 @@ mod tests {
 
     #[test]
     fn the_screen_orientation_is_stored_by_index_and_asks_android_for_its_constant() {
-        // `ActivityInfo`: FULL_USER 13, SENSOR_PORTRAIT 7, SENSOR_LANDSCAPE 6. An unknown index loads as `Auto`.
-        assert_eq!(Settings::default().android_orientation(), 13);
+        // `ActivityInfo`: FULL_USER 13, SENSOR_PORTRAIT 7, SENSOR_LANDSCAPE 6. An unknown index loads as the
+        // default, `Landscape`.
+        assert_eq!(Settings::default().android_orientation(), 6);
         for (index, want) in [(1, 7), (2, 6), (0, 13)] {
             let mut mem = Mem::default();
             Settings {
@@ -1165,7 +1167,7 @@ mod tests {
             assert_eq!(Settings::load(&mem).android_orientation(), want, "{index}");
         }
         let s = Settings::load(&stored(r#"{"screenOrientation": 3}"#));
-        assert_eq!((s.screen_orientation, s.android_orientation()), (0, 13));
+        assert_eq!((s.screen_orientation, s.android_orientation()), (2, 6));
     }
 
     #[test]
