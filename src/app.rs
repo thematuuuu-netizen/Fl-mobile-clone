@@ -2225,6 +2225,13 @@ impl HoneydewApp {
         // Once per frame; screens take it by reference.
         let metrics = Metrics::new(ctx, self.settings.ui_scale);
         crate::ui::anim::set_mode(ctx, self.settings.animations, self.settings.inertia);
+        // The font picks, reinstalled only when they change (a reinstall rebuilds the font atlas).
+        let font_pick = (self.settings.ui_font, self.settings.browser_font);
+        let font_pick_id = egui::Id::new("font_pick");
+        if ctx.data(|d| d.get_temp::<(u8, u8)>(font_pick_id)) != Some(font_pick) {
+            fonts::install_fonts(ctx, font_pick.0, font_pick.1);
+            ctx.data_mut(|d| d.insert_temp(font_pick_id, font_pick));
+        }
         // As the frame starts; the settings tab edits `self.settings` meanwhile.
         let shown = self.settings.clone();
         // The roll's rows tint for the live notes and the engine's keys alike: each channel's, for the roll to take its
@@ -3090,7 +3097,11 @@ mod tests {
             // Never the developer's songs folder or the OS file dialogs.
             let files = without_factory(ProjectFiles::with_provider(Box::new(MemFiles::default())));
             let mut rig = Self {
-                ctx: egui::Context::default(),
+                ctx: {
+                    let ctx = egui::Context::default();
+                    fonts::install(&ctx);
+                    ctx
+                },
                 app: HoneydewApp {
                     files,
                     ..HoneydewApp::default()

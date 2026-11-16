@@ -1510,10 +1510,10 @@ fn chordset_save_marks_the_set_saved_at_once_and_writes_custom_chord_set_into_my
         "Custom Chord Set"
     );
     rig.frame(vec![]);
-    // The ChordSet box shows it, shrunk (here truncated) to its cell.
+    // The ChordSet box shows it, shrunk to its cell (in the app font the name fits whole).
     let label = &rig.app.slots.keyboard_settings.chords.set_label;
     assert_eq!(label, "Custom Chord Set");
-    assert!(rig.painted("Custom ...d Set"), "{:?}", rig.texts());
+    assert!(rig.painted("Custom Chord Set"), "{:?}", rig.texts());
 }
 
 // ---- CK: the keyboard kind is a setting (`keyboardKind`) ----

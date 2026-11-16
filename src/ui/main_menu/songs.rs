@@ -627,7 +627,7 @@ impl SongsTab {
                 line(CRUMB_H),
                 Align2::LEFT_CENTER,
                 &trail,
-                m.font_id(FontSize::Pt8),
+                m.font_id_browser(FontSize::Pt8),
                 text,
                 CRUMB_TAIL_K,
             );
@@ -638,7 +638,7 @@ impl SongsTab {
             line(TITLE_H),
             Align2::LEFT_CENTER,
             self.title(),
-            m.font_id(TITLE_FONT),
+            m.font_id_browser(TITLE_FONT),
             text,
             NAME_TAIL_K,
         );
@@ -705,7 +705,7 @@ impl SongsTab {
         });
         let (gap, pad, step) = (m.u(BAR_GAP), m.u(BAR_PAD), m.u(BAR_STEP));
         let width = |label: &str| {
-            let font = m.font_id(FontSize::Pt8);
+            let font = m.font_id_browser(FontSize::Pt8);
             ui.painter()
                 .layout_no_wrap(label.to_owned(), font, text)
                 .size()

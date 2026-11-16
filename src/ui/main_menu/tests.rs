@@ -81,10 +81,18 @@ struct Rig {
     action: Option<MainMenuAction>,
 }
 
+/// A fresh context with the app's fonts installed (the browser family must be bound before any menu text
+/// is laid out in it).
+fn fresh_ctx() -> Context {
+    let ctx = Context::default();
+    crate::fonts::install(&ctx);
+    ctx
+}
+
 impl Rig {
     fn new(tab: Tab) -> Self {
         let mut rig = Self {
-            ctx: Context::default(),
+            ctx: fresh_ctx(),
             menu: MainMenu::new(tab),
             library: Box::new(Fake),
             info: ProjectInfo::default(),
@@ -1449,14 +1457,14 @@ fn the_menu_takes_touches_at_rest_while_it_slides_in() {
     // tab (it does not land left of the sliding panel and close it).
     let at = Rig::new(Tab::Songs).find("PROJECT").center();
     let mut rig = Rig::new(Tab::Songs);
-    rig.ctx = Context::default();
+    rig.ctx = fresh_ctx();
     crate::ui::anim::enable(&rig.ctx);
     rig.frame(vec![]);
     assert_eq!(rig.click(at), None, "no Close");
     assert_eq!(rig.menu.tab, Tab::Project);
     // Meanwhile it is drawn where the slide has it: frame 2's tab row is trunc(0.8⁴·640) = 262 points right.
     let mut rig = Rig::new(Tab::Songs);
-    rig.ctx = Context::default();
+    rig.ctx = fresh_ctx();
     crate::ui::anim::enable(&rig.ctx);
     rig.frame(vec![]);
     rig.frame(vec![]);

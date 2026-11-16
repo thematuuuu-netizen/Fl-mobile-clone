@@ -360,7 +360,18 @@ pub struct Settings {
     /// ([`crate::ui::main_menu::MENU_W_MIN`]..=[`crate::ui::main_menu::MENU_W_MAX`]).
     #[serde(rename = "menuWidth")]
     pub menu_width: f32,
+    /// `UI font:` (our own key): an index into [`FONT_NAMES`], the face the app's UI text is drawn in. Open
+    /// Sans (0) by default.
+    #[serde(rename = "uiFont")]
+    pub ui_font: u8,
+    /// `Browser font:` (our own key): an index into [`FONT_NAMES`], the face the main menu's browser text is
+    /// drawn in, picked independently of [`Self::ui_font`]. Inter (1) by default.
+    #[serde(rename = "browserFont")]
+    pub browser_font: u8,
 }
+
+/// The font picks' names, in menu order: the bundled faces of [`crate::fonts`].
+pub const FONT_NAMES: [&str; 3] = ["Open Sans", "Inter", "Roboto"];
 
 /// `Project version size limit:`'s items, in MB.
 pub const VERSION_SIZE_LIMITS: [u32; 7] = [64, 128, 256, 512, 1024, 2048, 4096];
@@ -438,6 +449,8 @@ impl Default for Settings {
             rack_tab_place: 0.5,
             write_tags: true,
             menu_width: 20.0,
+            ui_font: 0,
+            browser_font: 1,
         }
     }
 }
@@ -548,6 +561,12 @@ impl Settings {
             crate::ui::main_menu::MENU_W_MIN,
             crate::ui::main_menu::MENU_W_MAX,
         );
+        if usize::from(s.ui_font) >= FONT_NAMES.len() {
+            s.ui_font = d.ui_font;
+        }
+        if usize::from(s.browser_font) >= FONT_NAMES.len() {
+            s.browser_font = d.browser_font;
+        }
         if !VERSION_SIZE_LIMITS.contains(&s.version_size_limit) {
             s.version_size_limit = d.version_size_limit;
         }
@@ -898,6 +917,8 @@ mod tests {
             rack_tab_place: 0.25,
             write_tags: !d.write_tags,
             menu_width: 26.5,
+            ui_font: 2,
+            browser_font: 0,
         }
     }
 
@@ -1109,6 +1130,7 @@ mod tests {
                 "audioInput",
                 "automationValueSnap",
                 "bgAudio",
+                "browserFont",
                 "checkForUpdates",
                 "continuousScroll",
                 "demoSongsVersion",
@@ -1158,6 +1180,7 @@ mod tests {
                 "soundsNoticeSeen",
                 "soundsOverMobileData",
                 "theme",
+                "uiFont",
                 "uiscalefactor",
                 "whatsNewSeen",
                 "writeTagsOnExport"

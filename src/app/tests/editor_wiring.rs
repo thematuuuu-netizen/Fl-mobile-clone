@@ -3412,7 +3412,7 @@ mod samples {
             // The hex pad shows the folder (shrunk to fit its 1.5 r text box) over the file name; the slot's folder is
             // The file's real one.
             let pads = rig.texts_in(KEYBOARD);
-            assert!(pads.contains(&"My R...ings".to_owned()), "{pads:?}");
+            assert!(pads.contains(&"My Recordings".to_owned()), "{pads:?}");
             assert_eq!(pads.iter().filter(|t| *t == "Take").count(), 1);
             assert_eq!(rig.kit().slots[4].folder, "My Recordings");
             assert_eq!(rig.kit().slots[4].file.custom_pad_name, "");

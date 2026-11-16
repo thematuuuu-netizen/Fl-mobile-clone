@@ -515,8 +515,8 @@ impl MainMenu {
 
         // Tab row: equal cells, each label 10 pt and centred in its cell, a middle ellipsis keeping 5 tail characters
         // when the cell is too narrow. The current tab is underlined (2t) along its cell's bottom; under the mouse a
-        // cell lights (`text` α 0.05).
-        let font = m.font_id(FontSize::Pt10);
+        // cell lights (`text` α 0.05). The menu's chrome is browser text: the `Browser font:` setting's face.
+        let font = m.font_id_browser(FontSize::Pt10);
         let cell_w = l.tabs.width() / Tab::ALL.len() as f32;
         for (i, tab) in Tab::ALL.into_iter().enumerate() {
             let left = l.tabs.left() + i as f32 * cell_w;
@@ -610,8 +610,9 @@ impl MainMenu {
         let m = cx.m;
         let text = cx.theme.colors.text.to_color32();
         let painter = ui.painter();
-        let layout =
-            |s: &str, pt: f32, color| painter.layout_no_wrap(s.to_owned(), m.font_id_pt(pt), color);
+        let layout = |s: &str, pt: f32, color| {
+            painter.layout_no_wrap(s.to_owned(), m.font_id_browser_pt(pt), color)
+        };
         let version = layout(&version(), FontSize::Pt8.points(), text.gamma_multiply(0.6));
         let logo = room.height();
         let gaps = 5.0 / m.ppp() + m.u(GAP);
@@ -795,7 +796,7 @@ pub(crate) fn text_field(
         .rect_filled(rect, 0.0, colors.background.to_color32());
     let edit = edit
         .frame(false)
-        .font(m.font_id(FontSize::Pt10))
+        .font(m.font_id_browser(FontSize::Pt10))
         .text_color(text)
         .hint_text(RichText::new(hint).color(text.gamma_multiply(HINT_ALPHA)))
         .margin(vec2(m.u(GAP), 0.0))

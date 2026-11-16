@@ -1,5 +1,13 @@
 use super::*;
 
+/// A fresh context with the app's fonts installed (the browser family must be bound before any browser
+/// text is laid out in it).
+fn fresh_ctx() -> Context {
+    let ctx = Context::default();
+    crate::fonts::install(&ctx);
+    ctx
+}
+
 /// The Modules browser's list: `Paste`, `Rack Preset`, `Instrument`, then the sections. The NOTE EFFECT section's five entries are
 /// all the note effects of the registry. Lemon Reverb and Lemon Limiter are Honeydew's own (`honeydew_audio::lemon`), as is
 /// the Dynamic EQ, the De-esser, Denoise and Half Time. The built-in plugins (`crate::plugins::builtin`) are LEMON STUDIO,
@@ -486,7 +494,7 @@ impl Rig {
     /// The browser just opened over a channel that takes instruments or not.
     fn over(instruments: bool) -> Self {
         let mut rig = Self {
-            ctx: Context::default(),
+            ctx: fresh_ctx(),
             browser: ModulesBrowser::default(),
             time: 0.0,
             instruments,
@@ -651,7 +659,7 @@ fn the_panel_slides_in_from_the_left_with_p_halving_its_gap_a_frame_as_the_scree
     // p ← (p + 1)/2 a drawn frame from 0, 1 once the gap is under 0.001 (frame 10); drawn at x + (p − 1)·W, the
     // screen dimmed to α 0.6·p.
     let mut rig = Rig {
-        ctx: Context::default(),
+        ctx: fresh_ctx(),
         browser: ModulesBrowser::default(),
         time: 0.0,
         instruments: true,
@@ -1142,7 +1150,7 @@ fn the_rows_take_touches_at_rest_while_the_panel_slides_in() {
     // Past the drawn panel's right edge (504), left of the scrollbar's grab (the right 1.5 U, #111).
     let at = pos2(520.0, paste.y);
     let mut rig = Rig {
-        ctx: Context::default(),
+        ctx: fresh_ctx(),
         browser: ModulesBrowser::default(),
         time: 0.0,
         instruments: true,
@@ -1155,7 +1163,7 @@ fn the_rows_take_touches_at_rest_while_the_panel_slides_in() {
     assert_eq!(rig.click(at), Some(BrowserAction::Paste));
     // Drawn where it is in the slide meanwhile: the row text is still left of its rest.
     let mut rig = Rig {
-        ctx: Context::default(),
+        ctx: fresh_ctx(),
         browser: ModulesBrowser::default(),
         time: 0.0,
         instruments: true,
@@ -1519,7 +1527,7 @@ fn bare_flash(ctx: &Context, shapes: &[ClippedShape], i: usize) -> bool {
 #[test]
 fn the_flash_skips_folders_starts_the_frame_after_the_tap_and_stays_on_its_rows_name() {
     // Row flash on pick.
-    let (ctx, mut panel) = (Context::default(), SidePanel::in_place());
+    let (ctx, mut panel) = (fresh_ctx(), SidePanel::in_place());
     let mut t = 0.0;
     let mut frame = |panel: &mut SidePanel, rows: &[(&str, bool)], events| {
         t += 1.0 / 60.0;
@@ -1562,7 +1570,7 @@ fn the_flash_skips_folders_starts_the_frame_after_the_tap_and_stays_on_its_rows_
 fn a_drag_on_the_scrollbar_moves_the_list_by_its_share_and_a_swipe_on_the_rows_still_scrolls() {
     // #111: a folder of 1000 samples. The thumb is a finger long (1.5 U) and takes a drag in the band 1.5 U in from the
     // list's right edge, though the bar drawn is thinner; the list moves by the share of the thumb's travel dragged.
-    let (ctx, mut panel) = (Context::default(), SidePanel::in_place());
+    let (ctx, mut panel) = (fresh_ctx(), SidePanel::in_place());
     let names: Vec<_> = (0..1000).map(|i| format!("Kick {i}")).collect();
     let rows: Vec<_> = names.iter().map(|n| (n.as_str(), false)).collect();
     let m = metrics();

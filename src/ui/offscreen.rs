@@ -27,8 +27,10 @@ pub struct Offscreen {
 
 impl Offscreen {
     pub fn new() -> Self {
+        let ctx = Context::default();
+        crate::fonts::install(&ctx);
         Self {
-            ctx: Context::default(),
+            ctx,
             time: 0.0,
             modifiers: Modifiers::NONE,
         }

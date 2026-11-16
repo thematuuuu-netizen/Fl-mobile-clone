@@ -337,7 +337,11 @@ mod tests {
         /// `picker` just opened over [`library`], run until the slide-in is over.
         fn new(picker: SoundFontPicker) -> Self {
             let mut rig = Self {
-                ctx: egui::Context::default(),
+                ctx: {
+                    let ctx = egui::Context::default();
+                    crate::fonts::install(&ctx);
+                    ctx
+                },
                 picker,
                 lib: library(),
                 time: 0.0,

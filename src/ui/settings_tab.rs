@@ -224,6 +224,10 @@ enum Choice {
     Orientation,
     /// `Project version size limit:` (#69), in MB ([`crate::settings::VERSION_SIZE_LIMITS`]).
     VersionSize,
+    /// `UI font:`: the face the app's UI text is drawn in ([`crate::settings::FONT_NAMES`]).
+    UiFont,
+    /// `Browser font:`: the face the main menu's browser text is drawn in ([`crate::settings::FONT_NAMES`]).
+    BrowserFont,
 }
 
 /// `Screen orientation:`, after `Animation:` where the app can lock the screen's orientation
@@ -240,7 +244,7 @@ const fn row(label: &'static str, kind: Kind) -> Row {
 }
 
 /// Every row of the SETTINGS tab, in order.
-const ROWS: [Row; 54] = {
+const ROWS: [Row; 56] = {
     use Kind::*;
     [
         row("MIDI:", Header),
@@ -282,6 +286,8 @@ const ROWS: [Row; 54] = {
         row("Metronome level", Level),
         row("User interface:", Header),
         row("Theme:", Dropdown(Choice::Theme)),
+        row("UI font:", Dropdown(Choice::UiFont)),
+        row("Browser font:", Dropdown(Choice::BrowserFont)),
         row("Theme creator", ThemeCreator),
         row("Scaling:", Scaling),
         row("Scale is currently limited to", ScaleLimit),
@@ -1225,6 +1231,10 @@ impl Choice {
             Choice::VersionSize => (crate::settings::VERSION_SIZE_LIMITS.iter())
                 .map(|&mb| (mb as usize, format!("{mb} MB")))
                 .collect(),
+            Choice::UiFont | Choice::BrowserFont => (crate::settings::FONT_NAMES.iter())
+                .map(|&name| name.to_owned())
+                .enumerate()
+                .collect(),
         }
     }
 
@@ -1240,6 +1250,8 @@ impl Choice {
             Choice::SampleMemory => usize::from(s.sample_memory_limit),
             Choice::Orientation => usize::from(s.screen_orientation),
             Choice::VersionSize => s.version_size_limit as usize,
+            Choice::UiFont => usize::from(s.ui_font),
+            Choice::BrowserFont => usize::from(s.browser_font),
         }
     }
 
@@ -1252,6 +1264,8 @@ impl Choice {
             Choice::SampleMemory => s.sample_memory_limit = value as u8,
             Choice::Orientation => s.screen_orientation = value as u8,
             Choice::VersionSize => s.version_size_limit = value as u32,
+            Choice::UiFont => s.ui_font = value as u8,
+            Choice::BrowserFont => s.browser_font = value as u8,
         }
     }
 
@@ -1392,6 +1406,8 @@ mod tests {
                 "Metronome level",
                 "User interface:",
                 "Theme:",
+                "UI font:",
+                "Browser font:",
                 "Theme creator",
                 "Scaling:",
                 "Scale is currently limited to",
@@ -1581,7 +1597,7 @@ mod tests {
     impl Rig {
         /// Tall enough to show every row (2 U each) without scrolling.
         fn new() -> Self {
-            Self::with_height(3000.0)
+            Self::with_height(4000.0)
         }
 
         fn with_height(height: f32) -> Self {

@@ -461,8 +461,11 @@ fn the_name_is_8_pt_right_and_top_in_the_channel_colour_with_the_kinds_default()
 #[test]
 fn a_long_name_is_cut_in_the_middle_keeping_five_characters() {
     let mut rig = Rig::new(true);
-    rig.song.channels[1].name =
-        "A very long channel name that cannot fit in its row, not even at eight points".into();
+    rig.song.channels[1].name = concat!(
+        "A very long channel name that cannot fit in its row, not even at eight points; ",
+        "a very long channel name that cannot fit in its row, not even at eight points"
+    )
+    .into();
     rig.frame(vec![]);
     let texts = rig.texts();
     let cut = texts

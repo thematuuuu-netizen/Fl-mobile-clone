@@ -228,7 +228,7 @@ fn paint_mark(painter: &Painter, m: &Metrics, rect: Rect, mark: Mark, ink: Color
             let at = pos2(right, rect.center().y);
             let (text, font) = (
                 format!(".{}", ext.to_lowercase()),
-                m.font_id(FontSize::Pt10),
+                m.font_id_browser(FontSize::Pt10),
             );
             let dim = ink.gamma_multiply(PLACE_ALPHA);
             painter
@@ -275,12 +275,23 @@ pub(crate) fn paint_row(painter: &Painter, cx: &UiCtx, rect: Rect, row: &RowLook
             let line = label
                 .with_min_y(name.bottom())
                 .with_max_y(name.bottom() + m.u(PLACE_LINE));
-            let font = m.font_id(FontSize::Pt12);
+            let font = m.font_id_browser(FontSize::Pt12);
             draw(painter, name, left, row.name, font, ink, 0);
-            let (font, dim) = (m.font_id(FontSize::Pt8), ink.gamma_multiply(PLACE_ALPHA));
+            let (font, dim) = (
+                m.font_id_browser(FontSize::Pt8),
+                ink.gamma_multiply(PLACE_ALPHA),
+            );
             truncated(painter, line, left, place, font, dim, 0);
         }
-        None => draw(painter, label, left, row.name, m.font_id(row.font), ink, 0),
+        None => draw(
+            painter,
+            label,
+            left,
+            row.name,
+            m.font_id_browser(row.font),
+            ink,
+            0,
+        ),
     }
 }
 
@@ -404,7 +415,7 @@ impl SearchBar {
             .id(field)
             .char_limit(TEXT_LIMIT)
             .frame(false)
-            .font(m.font_id(FontSize::Pt12))
+            .font(m.font_id_browser(FontSize::Pt12))
             .text_color(text)
             .hint_text(hint)
             .margin(vec2(m.u(MARGIN_X), m.u(MARGIN_Y)))

@@ -185,6 +185,20 @@ impl Metrics {
     pub fn font_id_pt(&self, pts: f32) -> egui::FontId {
         egui::FontId::proportional((self.u_px * pts / 16.0).floor() / self.ppp)
     }
+
+    /// The browser family's font of the given size: the main menu's browser text (the `Browser font:` setting),
+    /// at the same sizes as [`Self::font_id`].
+    pub fn font_id_browser(&self, size: FontSize) -> egui::FontId {
+        self.font_id_browser_pt(size.points())
+    }
+
+    /// [`Self::font_id_browser`] for any point size.
+    pub fn font_id_browser_pt(&self, pts: f32) -> egui::FontId {
+        egui::FontId::new(
+            (self.u_px * pts / 16.0).floor() / self.ppp,
+            egui::FontFamily::Name(crate::fonts::BROWSER_FAMILY.into()),
+        )
+    }
 }
 
 #[cfg(test)]

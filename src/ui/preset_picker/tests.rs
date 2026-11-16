@@ -260,7 +260,11 @@ impl Rig {
             lists: Cell::new(0),
         };
         let mut rig = Self {
-            ctx: egui::Context::default(),
+            ctx: {
+                let ctx = egui::Context::default();
+                crate::fonts::install(&ctx);
+                ctx
+            },
             picker,
             lib,
             time: 0.0,
