@@ -191,7 +191,7 @@ pub fn icon_shapes(id: IconId, square: Rect, color: Color32) -> Vec<Shape> {
             // Five bars of different heights standing on a shelf.
             for (i, top) in [22.0, 12.0, 26.0, 16.0, 30.0].into_iter().enumerate() {
                 let x = 8.0 + 7.0 * i as f32;
-                p.rect(x, top, x + 4.0, 35.0, 1.0);
+                p.rect(x, top, x + 4.0, 35.0, 1.5);
             }
             p.rect(6.0, 37.0, 42.0, 40.0, 1.5);
         }
@@ -200,12 +200,21 @@ pub fn icon_shapes(id: IconId, square: Rect, color: Color32) -> Vec<Shape> {
             for row in 0..2 {
                 for col in 0..4 {
                     let (x, y) = (6.0 + 9.5 * col as f32, 11.5 + 14.0 * row as f32);
-                    p.rect(x, y, x + 7.5, y + 11.0, 2.0);
+                    p.rect(x, y, x + 7.5, y + 11.0, 2.5);
                 }
             }
         }
         Piano => piano(&mut p, 8.0, 10.0, 40.0, 38.0, 4),
-        Play => p.poly(&[(16.0, 11.0), (38.0, 24.0), (16.0, 37.0)]),
+        Play => {
+            // A filled triangle with its corners rounded, the way SF Symbols draws `play.fill`: the fill, a
+            // stroke along each edge and a disc on each corner (the Rewind head's construction, larger).
+            let head = [(17.0, 11.5), (38.0, 24.0), (17.0, 36.5)];
+            p.poly(&head);
+            for (k, &(x, y)) in head.iter().enumerate() {
+                p.line(&[(x, y), head[(k + 1) % 3]], 3.5);
+                p.disc(x, y, 1.75);
+            }
+        }
         Rewind => {
             // A bar with round caps, and a triangle pointing at it with its corners rounded 1.
             p.line(&[(16.5, 15.5), (16.5, 32.5)], 2.5);
@@ -218,7 +227,7 @@ pub fn icon_shapes(id: IconId, square: Rect, color: Color32) -> Vec<Shape> {
                 p.disc(x, y, 1.0);
             }
         }
-        Record => p.disc(24.0, 24.0, 9.0),
+        Record => p.disc(24.0, 24.0, 9.5),
         AppLogo => {
             // A one-colour stand-in for our logo, which `painted_shapes` draws instead ([`logo`]): one thick stroke
             // curled into an "S".
@@ -276,8 +285,9 @@ pub fn icon_shapes(id: IconId, square: Rect, color: Color32) -> Vec<Shape> {
             p.rect(17.0, 40.0, 31.0, 42.5, 1.0);
         }
         Menu => {
+            // Three full pills: SF's `line.3.horizontal`.
             for y in [14.0, 24.0, 34.0] {
-                p.rect(10.0, y - 1.75, 38.0, y + 1.75, 1.75);
+                p.rect(9.0, y - 2.0, 39.0, y + 2.0, 2.0);
             }
         }
         Routing => {
@@ -402,8 +412,8 @@ pub fn icon_shapes(id: IconId, square: Rect, color: Color32) -> Vec<Shape> {
         ChannelVolume => faders(&mut p, &[(17.0, 28.0), (31.0, 17.0)]),
         Tracks => {
             // Two clips on two tracks.
-            p.rect(6.0, 13.0, 32.0, 21.0, 2.0);
-            p.rect(16.0, 27.0, 42.0, 35.0, 2.0);
+            p.rect(6.0, 13.0, 32.0, 21.0, 2.5);
+            p.rect(16.0, 27.0, 42.0, 35.0, 2.5);
         }
         Manual => {
             // An open book: two pages rising from the spine.
@@ -413,7 +423,7 @@ pub fn icon_shapes(id: IconId, square: Rect, color: Color32) -> Vec<Shape> {
                 2.5,
             );
         }
-        Position => plus(&mut p, 16.0, 2.0),
+        Position => plus(&mut p, 16.0, 2.5),
         Volume => {
             // Speaker box and cone, then two sound waves.
             p.rect(7.5, 18.0, 14.5, 30.0, 0.0);
@@ -456,8 +466,8 @@ pub fn icon_shapes(id: IconId, square: Rect, color: Color32) -> Vec<Shape> {
             }
         }
         Search => {
-            p.ring(20.0, 20.0, 11.0, 3.0);
-            p.line(&[(29.0, 29.0), (39.0, 39.0)], 4.5);
+            p.ring(20.0, 20.0, 11.0, 2.75);
+            p.line(&[(28.5, 28.5), (38.5, 38.5)], 4.0);
         }
         Import => {
             // An arrow down into an open tray.
@@ -706,7 +716,10 @@ pub fn icon_shapes(id: IconId, square: Rect, color: Color32) -> Vec<Shape> {
             // A shallow arch from an L head pointing down-left (mirrored for Redo). The arch's left end runs down
             // into the head's inner corner, aimed at its tip; its right end drops to a flat cut at y 29.25.
             let flip = |(x, y): (f32, f32)| if id == Undo { (x, y) } else { (48.0 - x, y) };
-            p.line(&[(10.75, 21.0), (10.75, 27.5), (18.0, 27.5)].map(flip), 2.0);
+            p.line(
+                &[(10.75, 21.0), (10.75, 27.5), (18.0, 27.5)].map(flip),
+                2.75,
+            );
             let mut arch = vec![
                 (11.75, 26.5),
                 (12.4, 25.9),
@@ -743,7 +756,7 @@ pub fn icon_shapes(id: IconId, square: Rect, color: Color32) -> Vec<Shape> {
                     .chain([last])
                     .collect();
             }
-            p.line(&arch.into_iter().map(flip).collect::<Vec<_>>(), 2.0);
+            p.line(&arch.into_iter().map(flip).collect::<Vec<_>>(), 2.75);
         }
         Knob => {
             // A disc with a rounded slot, 2.5 wide, from its centre 6.5 towards 10 o'clock, short of the rim. The slot is
@@ -772,10 +785,10 @@ pub fn icon_shapes(id: IconId, square: Rect, color: Color32) -> Vec<Shape> {
             p.poly(&far);
         }
         Hide => corner_arrow(&mut p, false),
-        Stop => p.rect(14.0, 14.0, 34.0, 34.0, 2.0),
+        Stop => p.rect(13.5, 13.5, 34.5, 34.5, 3.5),
         GraphLane => {
             for (x, top) in [(11.0, 24.0), (21.0, 12.0), (31.0, 30.0)] {
-                p.rect(x, top, x + 6.0, 38.0, 1.0);
+                p.rect(x, top, x + 6.0, 38.0, 1.5);
             }
         }
         ChevronDown => p.line(&[(13.0, 19.0), (24.0, 30.0), (35.0, 19.0)], 3.5),
@@ -801,7 +814,7 @@ pub fn icon_shapes(id: IconId, square: Rect, color: Color32) -> Vec<Shape> {
 /// Piano keys seen from the front: an outline, `keys` white keys and a black key on every inner boundary.
 fn piano(p: &mut Pen, x0: f32, y0: f32, x1: f32, y1: f32, keys: u8) {
     const W: f32 = 2.5;
-    p.frame(x0, y0, x1, y1, 2.0, W);
+    p.frame(x0, y0, x1, y1, 3.0, W);
     let black_bottom = y0 + 0.6 * (y1 - y0);
     for i in 1..keys {
         let x = x0 + (x1 - x0) * f32::from(i) / f32::from(keys);
@@ -1087,8 +1100,8 @@ impl Pen {
 /// left) with `flip`.
 fn corner_arrow(p: &mut Pen, flip: bool) {
     let f = |(x, y): (f32, f32)| if flip { (48.0 - x, 48.0 - y) } else { (x, y) };
-    p.line(&[f((14.25, 14.25)), f((32.25, 32.25))], 1.5);
-    p.line(&[f((33.0, 18.75)), f((33.0, 33.0)), f((19.5, 33.0))], 1.5);
+    p.line(&[f((14.25, 14.25)), f((32.25, 32.25))], 2.25);
+    p.line(&[f((33.0, 18.75)), f((33.0, 33.0)), f((19.5, 33.0))], 2.25);
 }
 
 /// The snap magnet, a C opening right around (21, 24) (outer radius 12, inner 4.5) with arms out to x 28.5 whose
