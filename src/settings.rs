@@ -366,7 +366,7 @@ pub const ORIENTATIONS: [(&str, i32); 3] = [("Auto", 13), ("Portrait", 7), ("Lan
 
 impl Default for Settings {
     /// The fresh-install state: ghost notes, range labels, the count-in, the recording's metronome and the CPU and RAM
-    /// meters on, the latency toggle unset (shown ON, compensating), the other toggles off, `NATIVE`, `Classic Gray`
+    /// meters on, the latency toggle unset (shown ON, compensating), the other toggles off, `NATIVE`, `iOS Dark`
     /// (the fallback theme), `100 %` and `Animation` `Full`. The metronome level is half way; the drum pads are locked.
     fn default() -> Self {
         Self {
@@ -437,7 +437,7 @@ impl Default for Settings {
 
 impl Settings {
     /// The settings stored in `storage`. Anything missing or unreadable is the default, field by field, and so is an
-    /// out-of-range value: an unknown theme is Classic Gray, an unknown scale 100 %.
+    /// out-of-range value: an unknown theme is iOS Dark, an unknown scale 100 %.
     pub fn load(storage: &dyn eframe::Storage) -> Self {
         let mut fields: Map<String, Value> = storage
             .get_string(STORAGE_KEY)
@@ -900,7 +900,7 @@ mod tests {
         assert!(!d.multi_core && d.low_latency == 0 && !d.background_audio);
         assert!(!d.multitrack_recording);
         assert!(!d.key_names && !d.middle_c_is_c4 && !d.continuous_scroll);
-        // `NATIVE`, `Classic Gray`, `100%`.
+        // `NATIVE`, `iOS Dark`, `100%`.
         assert_eq!(d.sound_mode, DEFAULT_SOUND_MODE);
         assert_eq!(d.theme, 0);
         assert_eq!(d.ui_scale, 100);

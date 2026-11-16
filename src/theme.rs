@@ -216,23 +216,23 @@ impl RawTheme {
             self.colors.unwrap_or_default(),
             self.options.unwrap_or_default(),
         );
-        let text = c.text.unwrap_or(Rgba::hex(0xC7CEDA));
+        let text = c.text.unwrap_or(Rgba::hex(0xFFFFFF));
         Theme {
             id: self.id,
             name: self.name,
             colors: ThemeColors {
-                background: c.background.unwrap_or(Rgba::hex(0x21272B)),
-                control_fill: c.control_fill.unwrap_or(Rgba::hex(0x31373B)),
-                module_fill: c.module_fill.unwrap_or(Rgba::hex(0x394046)),
-                menu_fill: c.menu_fill.unwrap_or(Rgba::hex(0x434C51)),
+                background: c.background.unwrap_or(Rgba::hex(0x000000)),
+                control_fill: c.control_fill.unwrap_or(Rgba::hex(0x1C1C1E)),
+                module_fill: c.module_fill.unwrap_or(Rgba::hex(0x2C2C2E)),
+                menu_fill: c.menu_fill.unwrap_or(Rgba::hex(0x3A3A3C)),
                 text,
                 // A fixed default, not the theme's background: no built-in theme sets it.
-                text_on_accent: c.text_on_accent.unwrap_or(Rgba::hex(0x21272B)),
+                text_on_accent: c.text_on_accent.unwrap_or(Rgba::hex(0xFFFFFF)),
                 accent: c.accent.unwrap_or(text),
-                white_key: c.white_key.unwrap_or(Rgba::hex(0xC7CEDA)),
-                black_key: c.black_key.unwrap_or(Rgba::hex(0x21272B)),
-                white_key_disabled: c.white_key_disabled.unwrap_or(Rgba::hex(0x9FA6B0)),
-                black_key_disabled: c.black_key_disabled.unwrap_or(Rgba::hex(0x717981)),
+                white_key: c.white_key.unwrap_or(Rgba::hex(0xFFFFFF)),
+                black_key: c.black_key.unwrap_or(Rgba::hex(0x1C1C1E)),
+                white_key_disabled: c.white_key_disabled.unwrap_or(Rgba::hex(0x8E8E93)),
+                black_key_disabled: c.black_key_disabled.unwrap_or(Rgba::hex(0x48484A)),
             },
             options: ThemeOptions {
                 accent_saturation: o.accent_saturation.unwrap_or(0.9),
@@ -286,16 +286,16 @@ pub fn builtin_themes() -> Vec<Theme> {
             }),
         }
     };
-    const ACCENT: u32 = 0xFB8B3F;
+    const ACCENT: u32 = 0x007AFF;
     let clay_keys = Some([0xC5CAD7, 0x211D20, 0x9A98A4, 0x807981]);
     let clay_options = Some([0.90, 0.63, 1.00, 0.153]);
 
     [
         row(
             0,
-            "Classic Gray",
-            [0x21272B, 0x31373B, 0x394046, 0x434C51, 0xC7CEDA, ACCENT],
-            None,
+            "iOS Dark",
+            [0x000000, 0x1C1C1E, 0x2C2C2E, 0x3A3A3C, 0xFFFFFF, ACCENT],
+            Some([0xFFFFFF, 0x1C1C1E, 0x8E8E93, 0x48484A]),
             None,
         ),
         row(
@@ -315,10 +315,10 @@ pub fn builtin_themes() -> Vec<Theme> {
         ),
         row(
             3,
-            "Paper",
-            [0x838383, 0xD4D4D4, 0xECEBE9, 0xF5F5F4, 0x584C46, ACCENT],
-            Some([0xFFFFFF, 0x76665D, 0xE0E0E0, 0xCFC8C3]),
-            Some([0.7961, 0.347, 0.60, 0.7453]),
+            "iOS Light",
+            [0xF2F2F7, 0xFFFFFF, 0xFFFFFF, 0xFFFFFF, 0x1C1C1E, ACCENT],
+            Some([0xFFFFFF, 0x000000, 0xD1D1D6, 0x8E8E93]),
+            Some([0.85, 0.55, 0.60, 0.7453]),
         ),
         row(
             4,
@@ -382,7 +382,7 @@ pub fn import(stem: &str, bytes: &[u8]) -> Result<Theme, String> {
     Ok(theme)
 }
 
-/// Theme by ID; an unknown ID gives theme 0 (Classic Gray).
+/// Theme by ID; an unknown ID gives theme 0 (iOS Dark).
 pub fn theme_by_id(id: u32) -> Theme {
     let mut themes = builtin_themes();
     let index = themes.iter().position(|t| t.id == id).unwrap_or(0);
@@ -450,30 +450,30 @@ mod tests {
     }
 
     #[test]
-    fn classic_gray_resolves_with_defaults() {
+    fn ios_dark_resolves_with_defaults() {
         let c = theme_by_id(0).colors;
-        assert_eq!(c.background.to_hex(), "21272B");
-        assert_eq!(c.text.to_hex(), "C7CEDA");
-        assert_eq!(c.accent.to_hex(), "FB8B3F");
-        assert_eq!(c.white_key.to_hex(), "C7CEDA");
-        assert_eq!(c.black_key_disabled.to_hex(), "717981");
+        assert_eq!(c.background.to_hex(), "000000");
+        assert_eq!(c.text.to_hex(), "FFFFFF");
+        assert_eq!(c.accent.to_hex(), "007AFF");
+        assert_eq!(c.white_key.to_hex(), "FFFFFF");
+        assert_eq!(c.black_key_disabled.to_hex(), "48484A");
     }
 
     #[test]
-    fn paper_options() {
+    fn ios_light_options() {
         let o = theme_by_id(3).options;
-        assert!(near(o.accent_saturation, 0.7961, 1e-4));
+        assert!(near(o.accent_saturation, 0.85, 1e-4));
         assert!(near(o.playlist_track_background_transparency, 0.7453, 1e-4));
     }
 
     #[test]
-    fn builtins_are_numbered_in_order_and_unknown_id_is_classic_gray() {
+    fn builtins_are_numbered_in_order_and_unknown_id_is_ios_dark() {
         let themes = builtin_themes();
         assert_eq!(themes.len(), 9);
         assert!(themes.iter().enumerate().all(|(i, t)| t.id == i as u32));
         assert_eq!(themes[7].name, "High Contrast A");
         assert_eq!(theme_by_id(9).id, 0);
-        assert_eq!(theme_by_id(u32::MAX).name, "Classic Gray");
+        assert_eq!(theme_by_id(u32::MAX).name, "iOS Dark");
         // A theme that sets its own keys and options: Deep Purple.
         let deep = &themes[1];
         assert_eq!(deep.colors.black_key.to_hex(), "000000");
@@ -505,7 +505,7 @@ mod tests {
         .into();
         assert_eq!(
             hex.join(" "),
-            "21272B 31373B 394046 434C51 C7CEDA C7CEDA C7CEDA 21272B 9FA6B0 717981"
+            "000000 1C1C1E 2C2C2E 3A3A3C FFFFFF FFFFFF FFFFFF 1C1C1E 8E8E93 48484A"
         );
         let o = t.options;
         assert_eq!(
@@ -544,8 +544,8 @@ mod tests {
         let t = import("Sunset", json).unwrap();
         assert_eq!(t.name, "Sunset");
         assert_eq!(t.colors.accent.to_hex(), "00FF80");
-        assert_eq!(t.colors.background.to_hex(), "21272B");
-        assert_eq!(t.colors.black_key.to_hex(), "21272B");
+        assert_eq!(t.colors.background.to_hex(), "000000");
+        assert_eq!(t.colors.black_key.to_hex(), "1C1C1E");
         assert_eq!(t.options.accent_lightness, 0.4);
         assert_eq!(t.options.accent_saturation, 0.9);
         let named = import("x", br#"{"name": "Dusk", "colors": {}}"#).unwrap();
@@ -569,7 +569,7 @@ mod tests {
         let t =
             Theme::from_json(r#"{"id": 9, "name": "x", "colors": {"text": "112233"}}"#).unwrap();
         assert_eq!(t.colors.accent.to_hex(), "112233");
-        assert_eq!(t.colors.background.to_hex(), "21272B");
+        assert_eq!(t.colors.background.to_hex(), "000000");
     }
 
     #[test]

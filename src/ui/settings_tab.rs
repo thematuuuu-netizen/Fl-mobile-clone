@@ -1484,10 +1484,10 @@ mod tests {
         assert_eq!(
             labels(Choice::Theme),
             [
-                "Classic Gray",
+                "iOS Dark",
                 "Deep Purple",
                 "Slate",
-                "Paper",
+                "iOS Light",
                 "Clay",
                 "Ground",
                 "Mint",
@@ -1508,7 +1508,7 @@ mod tests {
                 .unwrap()
                 .1
         );
-        assert_eq!(Choice::Theme.label(&s), "Classic Gray");
+        assert_eq!(Choice::Theme.label(&s), "iOS Dark");
         assert_eq!(Choice::Animation.label(&s), "Full");
         let mut s = Settings::default();
         for c in [Choice::Theme, Choice::Animation] {

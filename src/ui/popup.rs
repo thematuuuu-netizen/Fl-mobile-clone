@@ -1,4 +1,5 @@
-//! The inverted popup menu: a grid of text items in `text` colour with `background` ink. No border, shadow or rounding.
+//! The popup menu, iOS style: a grid of text items in `text` colour on a rounded-corner sheet
+//! (corner radius 0.25 U, no border or shadow), with `background` ink on the sheet's fill.
 
 use std::borrow::Cow;
 
@@ -227,7 +228,7 @@ fn show_as<T: Copy>(
         ui.allocate_exact_size(rect.size(), Sense::hover());
         let painter = ui.painter();
         if let Some(shape) = sweep.fill(rect, m).filter(|_| !on_box) {
-            painter.rect_filled(shape, 0.0, fill);
+            painter.rect_filled(shape, m.u(0.25), fill);
         }
         // Until the sweep is done (or while a message box opens) the items take input but are not drawn.
         let mut painter = painter.clone();
