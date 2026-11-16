@@ -18,7 +18,7 @@
         android:theme="@android:style/Theme.Material.NoActionBar.Fullscreen">
         <activity
             android:name="dev.daijro.honeydew.HoneydewActivity"
-            android:screenOrientation="fullUser"
+            android:screenOrientation="sensorLandscape"
             android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|keyboard|keyboardHidden|density|uiMode"
             android:exported="true">
             <meta-data android:name="android.app.lib_name" android:value="honeydew" />
