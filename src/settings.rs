@@ -153,6 +153,10 @@ pub struct Settings {
     /// `Enable background audio (iOS Only)`. Stored for the iOS build; disabled elsewhere.
     #[serde(rename = "bgAudio")]
     pub background_audio: bool,
+    /// Animate the rack cards' dynamic-gradient background (our own key). On by default; off paints the
+    /// same glow statically. The global animation mode still gates the motion as well.
+    #[serde(rename = "pluginAnim")]
+    pub plugin_anim: bool,
     /// `Sound mode:`, a stored id from [`SOUND_MODES`], selecting the platform's audio mode.
     #[serde(rename = "soundModeAndr")]
     pub sound_mode: u8,
@@ -394,6 +398,7 @@ impl Default for Settings {
             mcp_token: String::new(),
             low_latency: 0,
             background_audio: false,
+            plugin_anim: true,
             sound_mode: DEFAULT_SOUND_MODE,
             latency_compensation: true,
             multitrack_recording: false,
@@ -850,6 +855,7 @@ mod tests {
             mcp_token: String::new(),
             low_latency: if d.low_latency == 0 { 1 } else { 0 },
             background_audio: !d.background_audio,
+            plugin_anim: !d.plugin_anim,
             sound_mode: SOUND_MODES
                 .get(1)
                 .map(|&(id, _)| id)
@@ -1159,6 +1165,7 @@ mod tests {
                 "pianoRollPanSnap",
                 "pianoRollVelocitySnap",
                 "pickerKeys",
+                "pluginAnim",
                 "pluginFolders",
                 "preferredKbdSizeCells",
                 "projectVersionSizeLimit",

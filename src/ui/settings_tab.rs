@@ -244,7 +244,7 @@ const fn row(label: &'static str, kind: Kind) -> Row {
 }
 
 /// Every row of the SETTINGS tab, in order.
-const ROWS: [Row; 56] = {
+const ROWS: [Row; 57] = {
     use Kind::*;
     [
         row("MIDI:", Header),
@@ -288,6 +288,7 @@ const ROWS: [Row; 56] = {
         row("Theme:", Dropdown(Choice::Theme)),
         row("UI font:", Dropdown(Choice::UiFont)),
         row("Browser font:", Dropdown(Choice::BrowserFont)),
+        row("Animate plugin backgrounds", Toggle(|s| &mut s.plugin_anim)),
         row("Theme creator", ThemeCreator),
         row("Scaling:", Scaling),
         row("Scale is currently limited to", ScaleLimit),
@@ -1408,6 +1409,7 @@ mod tests {
                 "Theme:",
                 "UI font:",
                 "Browser font:",
+                "Animate plugin backgrounds",
                 "Theme creator",
                 "Scaling:",
                 "Scale is currently limited to",
@@ -1469,7 +1471,7 @@ mod tests {
                 _ => None,
             })
             .collect();
-        assert_eq!(toggles.len(), if cfg!(target_os = "ios") { 15 } else { 14 });
+        assert_eq!(toggles.len(), if cfg!(target_os = "ios") { 16 } else { 15 });
         for (label, field) in &toggles {
             let mut s = Settings::default();
             *field(&mut s) = !*field(&mut s);
@@ -2013,7 +2015,7 @@ mod tests {
             let (u, t) = (m.u(1.0), m.t());
             let column_right = rig.width - 2.0 * u;
             let fills = fills(&rig);
-            assert_eq!(toggles().count(), 19);
+            assert_eq!(toggles().count(), 20);
             for r in toggles() {
                 let at = format!("ppp {ppp} scale {scale}: `{}`", r.label);
                 let control = rig.rect_of(row_id(index(r.label)));

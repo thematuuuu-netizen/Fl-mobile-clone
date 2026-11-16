@@ -70,6 +70,43 @@ palette or pre-rounding geometry. Fixed without changing the redesign's look:
 
 Local result: `cargo test -p honeydew --lib` — 4524 passed, 0 failed.
 
+## Liquid Glass round
+
+A second round, following Apple's WWDC25 "Meet Liquid Glass" guidance (glass only on the
+floating layer, never glass on glass, tint only for primary actions) and the iOS system
+palette. Real backdrop blur/refraction is not possible in egui, so the glass is simulated
+with translucent fills, hairline borders, top highlights and damped-spring motion.
+
+- **Channel colours** snap to the iOS system palette (red, orange, yellow, green, light
+  blue, blue, purple, pink) instead of raw HSL rotation.
+- **Icons** (`src/icons.rs`): an SF-Symbols-style consistency pass — one grid, one stroke
+  weight family, rounded joins — verified with the repo's icon-sheet render harness.
+- **Controls**: sliders get a glass thumb that takes the channel colour as a lens and
+  stretches subtly while held; toggles are iOS switches; popup sheets and floating
+  buttons are dark glass; the transport button is ringed in glass.
+- **Main menu** is a floating sheet (inset, 0.5 U corners, glass frame, grip pill) whose
+  width is draggable from its left edge and remembered (`menuWidth` setting); its big
+  white circle buttons became dark glass discs. It no longer rigidly takes half the
+  screen.
+- **Fonts**: two independent settings, `UI font:` and `Browser font:`, each Open Sans /
+  Inter / Roboto. Inter and Roboto are bundled; they are stored base64-encoded
+  (`assets/fonts/*.ttf.b64`) because this repo's tooling carries text only, and decoded
+  once at startup. Font picks are matched in line height, so switching never reflows
+  rows. The song browser, modules browser and search surfaces use the browser font.
+- **Mixer**: every channel strip stands on its own card (app background, rounded,
+  separated); the selected strip is ringed in its channel colour.
+- **Rack card backgrounds**: every card except the Lemon Studio ones (their embedded
+  editors keep their own look, untouched) gets an Apple-style dynamic gradient — a
+  vertex-colour mesh with the channel colour and a white ambient blob drifting slowly
+  (an ~11 s calm loop, per Aurora-style guidance) plus a glowing channel-colour edge.
+  Alphas stay low so text contrast is preserved. The `Animate plugin backgrounds`
+  setting (`pluginAnim`) turns the motion off (the glow then paints statically), and
+  the global Animation setting gates it too.
+- **Orientation**: the in-app default is now Landscape, matching the manifest.
+
+Local result: `cargo test -p honeydew --lib` — 4530 passed, 0 failed; clippy and
+rustfmt clean.
+
 ## Android test build
 
 `.github/workflows/android-test-build.yml` builds the base (no-sounds) debug APK

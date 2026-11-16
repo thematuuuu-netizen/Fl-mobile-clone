@@ -2283,6 +2283,22 @@ impl RackPanel {
         // button, the only cards that do, `Some(open)` here.
         let plugin = crate::song::plugin::is_plugin(module.type_id);
         let lemon = lemon_plugin(module);
+        // Every card but a Lemon one — its embedded editor owns its look, untouched — gets the dynamic
+        // gradient: the channel colour and a white ambient blob drifting slowly over the base fill, and
+        // a glowing edge. With the motion off (the setting, or animations reduced) the same field is
+        // painted statically, at phase zero.
+        if lemon.is_none() {
+            let moving = crate::ui::glass::bg_anim(ui.ctx()) && crate::ui::anim::enabled(ui.ctx());
+            let phase = if moving {
+                ui.ctx()
+                    .request_repaint_after(std::time::Duration::from_millis(120));
+                (ui.ctx().input(|i| i.time) * std::f64::consts::TAU / 11.0) as f32
+            } else {
+                0.0
+            };
+            crate::ui::glass::paint_mesh_glow(ui.painter(), card, corner, ink, phase);
+            crate::ui::glass::paint_glow_edge(ui.painter(), card, corner, ink);
+        }
         let window = match crate::plugins::state(self.channel_id, id) {
             Some(crate::plugins::State::Live(info))
                 if lemon.is_none()

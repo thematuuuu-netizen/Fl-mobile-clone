@@ -7,7 +7,7 @@
 //! glass. A tinted surface mixes a colour into the fill the way coloured glass does: the tint stays
 //! translucent, it never becomes a solid slab.
 
-use eframe::egui::{self, Color32, Painter, Rect, Stroke, pos2};
+use eframe::egui::{self, Color32, Mesh, Painter, Rect, Shape, Stroke, pos2};
 
 use crate::theme::ThemeColors;
 
@@ -18,6 +18,89 @@ fn tinted(fill: Color32, tint: Color32, share: f32) -> Color32 {
     let t = tint.to_srgba_unmultiplied();
     let mix = |a: u8, b: u8| (f32::from(a) + (f32::from(b) - f32::from(a)) * share).round() as u8;
     Color32::from_rgba_unmultiplied(mix(f[0], t[0]), mix(f[1], t[1]), mix(f[2], t[2]), f[3])
+}
+
+/// Whether the rack cards' dynamic-gradient background may move this frame: the app copies the
+/// `Animate plugin backgrounds` setting here each frame (the rack paints from contexts that never see
+/// the settings). Unset reads as on, the setting's own default.
+pub fn bg_anim(ctx: &egui::Context) -> bool {
+    ctx.data(|d| d.get_temp::<bool>(egui::Id::new("plugin_bg_anim")))
+        .unwrap_or(true)
+}
+
+/// [`bg_anim`]'s writer, called by the app shell once per frame.
+pub fn set_bg_anim(ctx: &egui::Context, on: bool) {
+    ctx.data_mut(|d| d.insert_temp(egui::Id::new("plugin_bg_anim"), on));
+}
+
+/// Paints the rack cards' dynamic gradient over `rect` (already filled with the card's base colour): a
+/// small vertex-colour mesh, two soft radial blobs — the channel colour low in one corner, a white
+/// ambient lift in the other — fading to nothing at the edges so text keeps its contrast. `phase` drifts
+/// the blob centres a little; at rest (or with the motion off) the same field is painted statically.
+/// Apple's Aurora guidance: layered colour, a slow calm loop, never a distraction.
+pub fn paint_mesh_glow(painter: &Painter, rect: Rect, radius: f32, tint: Color32, phase: f32) {
+    const COLS: usize = 6;
+    const ROWS: usize = 4;
+    let inner = rect.shrink(radius.min(rect.width()).min(rect.height()) * 0.5);
+    let a = pos2(
+        inner.left() + inner.width() * (0.30 + 0.07 * phase.sin()),
+        inner.top() + inner.height() * (0.38 + 0.06 * (phase * 0.9).cos()),
+    );
+    let b = pos2(
+        inner.left() + inner.width() * (0.74 + 0.06 * (phase * 0.8).cos()),
+        inner.top() + inner.height() * (0.68 + 0.05 * (phase * 1.1).sin()),
+    );
+    let blob = |p: egui::Pos2, c: egui::Pos2, peak: f32| {
+        let d = ((p.x - c.x) / inner.width()).powi(2) + ((p.y - c.y) / inner.height()).powi(2);
+        peak * (-3.2 * d).exp()
+    };
+    let mut mesh = Mesh::default();
+    for r in 0..=ROWS {
+        for c in 0..=COLS {
+            let p = pos2(
+                inner.left() + inner.width() * c as f32 / COLS as f32,
+                inner.top() + inner.height() * r as f32 / ROWS as f32,
+            );
+            let ta = blob(p, a, 0.16);
+            let tb = blob(p, b, 0.07);
+            let mix = |ch: u8, peak: f32| (f32::from(ch) * peak).round().clamp(0.0, 255.0) as u8;
+            let alpha = ((ta + tb) * 255.0).round().clamp(0.0, 255.0) as u8;
+            let color = if alpha == 0 {
+                Color32::TRANSPARENT
+            } else {
+                let share = ta / (ta + tb).max(f32::EPSILON);
+                Color32::from_rgba_unmultiplied(
+                    mix(tint.r(), share) + mix(255, 1.0 - share),
+                    mix(tint.g(), share) + mix(255, 1.0 - share),
+                    mix(tint.b(), share) + mix(255, 1.0 - share),
+                    alpha,
+                )
+            };
+            mesh.vertices.push(egui::epaint::Vertex {
+                pos: p,
+                uv: egui::Pos2::ZERO,
+                color,
+            });
+        }
+    }
+    for r in 0..ROWS {
+        for c in 0..COLS {
+            let i = (r * (COLS + 1) + c) as u32;
+            let w = (COLS + 1) as u32;
+            mesh.indices
+                .extend_from_slice(&[i, i + 1, i + w, i + 1, i + w + 1, i + w]);
+        }
+    }
+    painter.add(Shape::mesh(mesh));
+}
+
+/// A glowing edge for the rack cards: the channel colour as a wide faint halo under a thin brighter
+/// line, traced on the card's rounded outline.
+pub fn paint_glow_edge(painter: &Painter, rect: Rect, radius: f32, tint: Color32) {
+    let path = rounded_outline(rect, radius);
+    let fade = |a: u8| Color32::from_rgba_unmultiplied(tint.r(), tint.g(), tint.b(), a);
+    painter.add(egui::Shape::line(path.clone(), Stroke::new(3.0, fade(26))));
+    painter.add(egui::Shape::line(path, Stroke::new(1.0, fade(90))));
 }
 
 /// Paints a glass surface over `rect` with corners `radius`: fill, border, and the top highlight (a short
@@ -125,5 +208,15 @@ mod tests {
         assert_eq!(out.a(), 26);
         let [r, _, b, _] = out.to_srgba_unmultiplied();
         assert!(b > r && r < 255 && b > 140, "{out:?}");
+    }
+
+    #[test]
+    fn the_background_animation_flag_defaults_on_and_follows_the_writer() {
+        let ctx = egui::Context::default();
+        assert!(super::bg_anim(&ctx));
+        super::set_bg_anim(&ctx, false);
+        assert!(!super::bg_anim(&ctx));
+        super::set_bg_anim(&ctx, true);
+        assert!(super::bg_anim(&ctx));
     }
 }

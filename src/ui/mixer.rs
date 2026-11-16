@@ -17,7 +17,9 @@
 //! The level in dB (#133, a Honeydew addition): under a tall fader's cap, where its lowest value leaves room
 //! ([`widgets::below_cap`]); and in the name slot while the fader is held, at every height.
 
-use eframe::egui::{Align2, Id, Pos2, Rect, Ui, UiBuilder, Vec2, pos2, vec2};
+use eframe::egui::{
+    Align2, CornerRadius, Id, Pos2, Rect, Stroke, StrokeKind, Ui, UiBuilder, Vec2, pos2, vec2,
+};
 use honeydew_audio::device::ModuleMeter;
 
 use crate::icons::draw_icon;
@@ -197,6 +199,20 @@ pub fn show(
         }
         let strip = Rect::from_min_size(pos2(left, rect.top()), vec2(unit, rect.height()));
         let color = channel_color(channel.hue, cx.theme).to_color32();
+        // Each strip stands on its own card, so the channels read as separate units instead of one flat
+        // slab: the app background in a rounded rect, and the selected strip ringed in its channel colour.
+        let card = strip.shrink2(vec2(2.0, 2.0));
+        let card_rounding = CornerRadius::same(m.u(0.25) as u8);
+        ui.painter()
+            .rect_filled(card, card_rounding, colors.background.to_color32());
+        if state.selected == Some(i) {
+            ui.painter().rect_stroke(
+                card,
+                card_rounding,
+                Stroke::new(1.5, color),
+                StrokeKind::Inside,
+            );
+        }
         let icon = kind_icon(channel.kind);
         let master = channel.kind == ChannelKind::Master;
         let name = channel.name.as_str();

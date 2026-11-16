@@ -2225,6 +2225,7 @@ impl HoneydewApp {
         // Once per frame; screens take it by reference.
         let metrics = Metrics::new(ctx, self.settings.ui_scale);
         crate::ui::anim::set_mode(ctx, self.settings.animations, self.settings.inertia);
+        crate::ui::glass::set_bg_anim(ctx, self.settings.plugin_anim);
         // The font picks, reinstalled only when they change (a reinstall rebuilds the font atlas).
         let font_pick = (self.settings.ui_font, self.settings.browser_font);
         let font_pick_id = egui::Id::new("font_pick");
