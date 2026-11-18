@@ -67,6 +67,13 @@ fn left(keep: f32, t: f32) -> f32 {
 /// little on the way, and settles. With the animations off (or in a test that has not turned them on) it sits
 /// at `target`, so drawn shapes stay deterministic.
 pub fn spring(ctx: &Context, id: Id, target: f32) -> f32 {
+    spring_with(ctx, id, target, 340.0, 24.0)
+}
+
+/// [`spring`] with its constants given: a component group whose approved settings scale the app's spring
+/// runs on its own (the transport buttons' press spring is stiffness ×1.15, damping ×1.00 — the v14
+/// standard in [`crate::ui::glass`]).
+pub fn spring_with(ctx: &Context, id: Id, target: f32, stiffness: f32, damping: f32) -> f32 {
     if !enabled(ctx) {
         return target;
     }
@@ -78,12 +85,12 @@ pub fn spring(ctx: &Context, id: Id, target: f32) -> f32 {
         Some((x, v, last)) if last + 1 == now => (x, v),
         _ => (target, 0.0),
     };
-    // Semi-implicit Euler in two substeps (stable on a stalled frame): stiffness 340, damping 24 is
-    // underdamped, so the value swells past the target by roughly a tenth and settles — a soft gel, not a snap.
+    // Semi-implicit Euler in two substeps (stable on a stalled frame): the app's 340/24 is underdamped,
+    // so the value swells past the target by roughly a tenth and settles — a soft gel, not a snap.
     let dt = frame_dt(ctx);
     for _ in 0..2 {
         let h = dt / 2.0;
-        v += (340.0 * (target - x) - 24.0 * v) * h;
+        v += (stiffness * (target - x) - damping * v) * h;
         x += v * h;
     }
     if (target - x).abs() < 0.001 && v.abs() < 0.01 {
@@ -100,10 +107,16 @@ pub fn spring(ctx: &Context, id: Id, target: f32) -> f32 {
 /// not perform. Unlike an opening, a lift is 0 whenever the animations are off — a test that holds a control
 /// down still sees its resting shapes.
 pub fn press_lift(ctx: &Context, id: Id, active: bool) -> f32 {
+    press_lift_with(ctx, id, active, 340.0, 24.0)
+}
+
+/// [`press_lift`] on a given spring (see [`spring_with`]): the lift is still 0 whenever the animations
+/// are off, so a test that holds the control down sees its resting shapes.
+pub fn press_lift_with(ctx: &Context, id: Id, active: bool, stiffness: f32, damping: f32) -> f32 {
     if !enabled(ctx) {
         return 0.0;
     }
-    spring(ctx, id, if active { 1.0 } else { 0.0 })
+    spring_with(ctx, id, if active { 1.0 } else { 0.0 }, stiffness, damping)
 }
 
 /// This frame's time step in seconds, at most 0.1 s: a stalled frame is one short step. Tests run at 60 fps whatever

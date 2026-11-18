@@ -3,6 +3,10 @@
 This fork (`thematuuuu-netizen/Fl-mobile-clone`, from `daijro/honeydew`) restyles the
 app's egui UI to an iPhone / iOS look. The audio engine and song format are untouched.
 
+The follow-on round — the v14 Liquid Glass rollout (glass transport buttons,
+the Toggle, faders; the user's standard settings and their app mapping) — is
+documented in `REDESIGN.md`, the master handover doc for the current work.
+
 ## Orientation
 
 `android/app/src/main/AndroidManifest.xml`: the activity is locked to

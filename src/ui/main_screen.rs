@@ -1875,7 +1875,7 @@ impl MainScreen {
         if rec.clicked() {
             self.armed = !self.armed;
         }
-        let look = BarButton::icon(IconId::Record).caption("REC");
+        let look = BarButton::icon(IconId::Record).caption("REC").glass();
         paint_bar_button(
             ui,
             cx,
@@ -1887,9 +1887,10 @@ impl MainScreen {
         rec.widget_info(|| {
             egui::WidgetInfo::selected(egui::WidgetType::Checkbox, true, armed, "Arm recording")
         });
-        let rewind = BarButton::icon(IconId::Rewind).caption("REWIND");
+        let rewind = BarButton::icon(IconId::Rewind).caption("REWIND").glass();
         actions.rewind |= button(ui, "REWIND", slots.rewind, rewind).clicked();
-        // Play: its icon in a 2 px ring of radius 0.4 b; a stop square while playing.
+        // Play: a glass disc of radius 0.4 b, tinted in the accent — the transport's one primary
+        // button (prototype v14); a stop square while playing.
         let play = bar_response(ui, Id::new(("transport", "play")), slots.play, false);
         if play.clicked() {
             self.playing = !self.playing;
@@ -1899,7 +1900,13 @@ impl MainScreen {
         } else {
             IconId::Play
         };
-        paint_bar_button(ui, cx, &play, slots.play, BarButton::icon(icon).ring());
+        paint_bar_button(
+            ui,
+            cx,
+            &play,
+            slots.play,
+            BarButton::icon(icon).glass().tint(c.accent),
+        );
         let bpm = BarButton::default().caption("BPM");
         if button(ui, "BPM", slots.bpm, bpm).clicked() {
             nav = Some(Nav::Toggle(Overlay::TempoEditor));
@@ -2001,6 +2008,10 @@ struct BarButton<'a> {
     disabled: bool,
     /// Play's ring round the icon.
     ring: bool,
+    /// A v14 glass transport button: a glass disc under the icon (the centre transport group).
+    glass: bool,
+    /// The disc's tint, for the one primary button (play, in the theme's accent).
+    tint: Option<crate::theme::Rgba>,
 }
 
 impl<'a> BarButton<'a> {
@@ -2021,6 +2032,20 @@ impl<'a> BarButton<'a> {
 
     fn ring(self) -> Self {
         Self { ring: true, ..self }
+    }
+
+    fn glass(self) -> Self {
+        Self {
+            glass: true,
+            ..self
+        }
+    }
+
+    fn tint(self, tint: crate::theme::Rgba) -> Self {
+        Self {
+            tint: Some(tint),
+            ..self
+        }
     }
 
     fn ink(self, ink: Option<crate::theme::Rgba>) -> Self {
@@ -2075,8 +2100,9 @@ fn bar_response(ui: &mut egui::Ui, id: Id, slot: Rect, disabled: bool) -> egui::
 
 /// A transport button's look over `slot`, with no fill at rest: its icon in `text` (or `look.ink`), over its 6 pt
 /// caption, inset 0.2 U each side; lit, a `text` disc of radius 0.375 b behind a `controlFill` icon; with `ring`, a
-/// Liquid Glass disc of radius 0.4 b round the icon (a 2 px `text` rim when lit, whose disc fills its inside); a
-/// hovering mouse (on `response`) brightens it ×1.25. Disabled, the icon is at α 0.25.
+/// Liquid Glass disc of radius 0.4 b round the icon (a 2 px `text` rim when lit, whose disc fills its inside); with
+/// `glass`, a v14 glass disc of the same radius under the icon (see the branch below); a hovering mouse (on
+/// `response`) brightens it ×1.25. Disabled, the icon is at α 0.25.
 fn paint_bar_button(
     ui: &egui::Ui,
     cx: &UiCtx,
@@ -2095,11 +2121,47 @@ fn paint_bar_button(
     };
     let text = c.text.to_color32();
     let mut ink = look.ink.unwrap_or(c.text).to_color32();
-    let content = content_rect(slot, !look.caption.is_empty(), m);
+    let mut content = content_rect(slot, !look.caption.is_empty(), m);
     if look.lit {
         let r = LIT_R * slot.width();
         ui.painter().circle_filled(content.center(), r, tone(text));
         ink = c.control_fill.to_color32();
+    }
+    if look.glass {
+        // A v14 glass transport button (the buttons group, `glass::BUTTONS`): a glass disc under the
+        // icon, pressed on the group's own spring (stiffness ×1.15, damping ×1.00 against the app's
+        // 340/24), swelling at twice the base amount (the standard's press intensity ×2.00). While
+        // pressed the whole button leans toward the pointer — the prototype's magnetic pull at the
+        // standard's ×0.70 — gated by the lift so it eases in and out with the spring; the spring's
+        // own overshoot is the velocity response (velocity stretch ×1.00, no extra stretch term).
+        let lift = crate::ui::anim::press_lift_with(
+            ui.ctx(),
+            response.id,
+            response.is_pointer_button_down_on(),
+            crate::ui::glass::SPRING_STIFFNESS,
+            crate::ui::glass::SPRING_DAMPING,
+        );
+        let r = PLAY_RING * slot.width() * (1.0 + 0.04 * crate::ui::glass::PRESS_GAIN * lift);
+        let mut center = content.center();
+        if lift > 0.0 {
+            if let Some(p) = response.interact_pointer_pos() {
+                let mut lean = (p - center) * (0.5 * crate::ui::glass::BUTTON_PULL * lift);
+                let max = r * 0.25;
+                if lean.length() > max {
+                    lean *= max / lean.length();
+                }
+                center += lean;
+                content = content.translate(lean);
+            }
+        }
+        crate::ui::glass::paint_transport_disc(
+            ui.painter(),
+            center,
+            r,
+            c,
+            look.tint.map(|t| t.to_color32()),
+            lift,
+        );
     }
     if look.ring {
         let center = content.center();
@@ -3099,6 +3161,10 @@ mod tests {
     fn rec_toggles_the_arm_and_draws_its_icon_in_the_record_colour_while_armed() {
         with_transport(|rig, paint, rec, armed| {
             let text = theme_by_id(0).colors.text.to_color32();
+            // REC is a v14 glass transport button now: its glass disc is painted under the icon. Both
+            // are filled circles centred in the slot (the disc's border is a stroked circle with a
+            // transparent fill, so it is not collected), in paint order: disc first, icon over it.
+            let glass = theme_by_id(0).colors.glass_fill().to_color32();
             let ink = |shapes: &[egui::epaint::ClippedShape]| {
                 let caption = shapes.iter().find_map(|s| match &s.shape {
                     egui::Shape::Text(t) if t.galley.text() == "REC" => {
@@ -3106,17 +3172,24 @@ mod tests {
                     }
                     _ => None,
                 });
-                let disc = shapes.iter().find_map(|s| match &s.shape {
-                    egui::Shape::Circle(c) if rec.contains(c.center) => Some(c.fill),
-                    _ => None,
-                });
-                (caption, disc)
+                let circles: Vec<Color32> = shapes
+                    .iter()
+                    .filter_map(|s| match &s.shape {
+                        egui::Shape::Circle(c)
+                            if rec.contains(c.center) && c.fill != Color32::TRANSPARENT =>
+                        {
+                            Some(c.fill)
+                        }
+                        _ => None,
+                    })
+                    .collect();
+                (caption, circles.first().copied(), circles.last().copied())
             };
             let idle = rig.frame(vec![], paint);
-            assert_eq!(ink(&idle), (Some(text), Some(text)));
+            assert_eq!(ink(&idle), (Some(text), Some(glass), Some(text)));
             assert!(!armed.get());
             // A tap arms: the icon (a filled circle) turns the record colour from that frame on; the caption stays. The
-            // hovering pointer brightens both ×1.25.
+            // hovering pointer brightens both ×1.25; the glass disc under them does not change.
             let text = brighter(text, HOVER_GAIN);
             let at = rec.center();
             rig.frame(vec![egui::Event::PointerMoved(at)], paint);
@@ -3124,12 +3197,12 @@ mod tests {
             let tapped = rig.frame(vec![button(at, false)], paint);
             assert!(armed.get());
             let red = brighter(crate::theme::RECORD_COLOR.to_color32(), HOVER_GAIN);
-            assert_eq!(ink(&tapped), (Some(text), Some(red)));
+            assert_eq!(ink(&tapped), (Some(text), Some(glass), Some(red)));
             // Another tap disarms.
             rig.frame(vec![button(at, true)], paint);
             let tapped = rig.frame(vec![button(at, false)], paint);
             assert!(!armed.get());
-            assert_eq!(ink(&tapped), (Some(text), Some(text)));
+            assert_eq!(ink(&tapped), (Some(text), Some(glass), Some(text)));
         });
     }
 
